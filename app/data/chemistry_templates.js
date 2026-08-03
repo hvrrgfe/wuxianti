@@ -78,16 +78,11 @@
   templates.push({
     id: 'C-MOL-002', kp: '物质的量', kpId: 'kp-mole', type: 'blank', diff: 2,
     gen: function () {
-      var mass = E.pick([4, 8, 16, 32, 64]); var M = E.pick([16, 32, 44, 64]);
-      while (mass <= M) mass = E.pick([4, 16, 32, 64, 80]);
-      var n = mass / M;
-      var frac = addSol(mass, M);
-      // 质量 > 摩尔质量保证 n>1
-      var realMass = mass + M;
-      n = realMass / M;
-      var ans = Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
-      return { text: realMass + ' g 的 CO₂（摩尔质量 44 g/mol）的物质的量为 ______ mol。',
-        answer: String(realMass / 44), solution: ['n = m/M = ' + realMass + '/44 = ' + realMass / 44 + ' mol'], input: 'num', unit: 'mol' };
+      // 选 n mol 与摩尔质量M，质量 m=n*M 保证整除
+      var n = E.ri(1, 5), M = E.pick([16, 32, 44, 64]);
+      var mass = n * M;
+      return { text: mass + ' g 的某气体（摩尔质量 ' + M + ' g/mol）的物质的量为 ______ mol。',
+        answer: String(n), solution: ['n = m/M = ' + mass + '/' + M + ' = ' + n + ' mol'], input: 'num', unit: 'mol' };
     }
   });
 
