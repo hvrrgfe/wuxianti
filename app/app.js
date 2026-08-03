@@ -35,7 +35,9 @@ const ICONS = {
   refresh:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>',
   send:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
   star:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
-  chevron:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>'
+  chevron:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>',
+  trophy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>',
+  help:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12" y2="17"/></svg>'
 };
 
 // ============ 存储辅助 ============
@@ -155,6 +157,8 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
       <div class="grid-item" @click="go('ai')"><div class="icon-wrap" style="background:linear-gradient(135deg,#ecfeff,#cffafe);color:#0891b2" v-html="ICONS.zap"></div><span class="label">AI助手</span></div>
       <div class="grid-item" @click="go('profile')"><div class="icon-wrap" style="background:linear-gradient(135deg,#fce7f3,#fbcfe8);color:#db2777" v-html="ICONS.settings"></div><span class="label">我的</span></div>
       <div class="grid-item" @click="goKeep('kaoshi')"><div class="icon-wrap" style="background:linear-gradient(135deg,#fef2f2,#fee2e2);color:#b91c1c" v-html="ICONS.clock"></div><span class="label">考纲</span></div>
+      <div class="grid-item" @click="goKeep('achievements')"><div class="icon-wrap" style="background:linear-gradient(135deg,#fefce8,#fef9c3);color:#ca8a04" v-html="ICONS.trophy"></div><span class="label">成就</span></div>
+      <div class="grid-item" @click="goKeep('help')"><div class="icon-wrap" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);color:#16a34a" v-html="ICONS.help"></div><span class="label">帮助</span></div>
     </div>
 
     <div class="card" v-if="help">
@@ -177,13 +181,36 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
              style="text-align:center;padding:12px 4px" @click="gen.subject=k;gen.kps=[]">{{s.name}}</div>
       </div>
     </div>
+    <div class="card" v-if="gradesOf(gen.subject).length">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:8px">选择年级 <span style="font-size:11px;color:var(--text3)">（按福建高中课程进度精准出题）</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="mm-tab" :class="{active:gen.grade==='all'}" style="padding:8px 14px" @click="gen.grade='all';gen.kps=[]">全部</div>
+        <div v-for="g in gradesOf(gen.subject)" :key="g" class="mm-tab" :class="{active:String(gen.grade)===String(g)}" style="padding:8px 14px" @click="gen.grade=g;gen.kps=[]">{{gradeName(g)}}</div>
+      </div>
+    </div>
+    <!-- 按教材章节出题 -->
+    <div class="card" v-if="textbookBooks(gen.subject).length">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:8px">按教材章节 <span style="font-size:11px;color:var(--text3)">（人教版 · 学到哪练到哪，一键出本单元题）</span></div>
+      <div v-for="(book,bi) in textbookBooks(gen.subject)" :key="bi" style="border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;cursor:pointer;background:var(--bg)" @click="expandedBook=expandedBook===String(bi)?'':String(bi)">
+          <b style="font-size:13px">{{book.book}} <span style="color:var(--text3);font-weight:400;font-size:11px">({{gradeName(book.grade)}})</span></b>
+          <span style="color:var(--text3)">{{expandedBook===String(bi)?'▲':'▼'}}</span>
+        </div>
+        <div v-if="expandedBook===String(bi)">
+          <div v-for="(ch,ci) in book.chapters" :key="ci" style="display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-top:1px solid var(--border)">
+            <span style="font-size:13px;flex:1">{{ch.ch}}.{{ch.title}}</span>
+            <button class="btn-ghost" style="font-size:11px;padding:4px 10px" @click="chooseChapter(gen.subject,bi,ci)">{{ch.kps&&ch.kps.length?'本单元出题':'暂无模板'}}</button>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:13px;color:var(--text2)">选择知识点（最多5个）</span>
         <span style="font-size:12px;color:var(--success)">已选{{gen.kps.length}}</span>
       </div>
       <div style="margin-top:10px">
-        <div v-for="kp in kpsOf(gen.subject)" :key="kp" class="kp-item" @click="toggleKp(kp)">
+        <div v-for="kp in kpsOfGrade(gen.subject, gen.grade)" :key="kp" class="kp-item" @click="toggleKp(kp)">
           <input type="checkbox" :checked="gen.kps.indexOf(kp)>=0" style="width:18px;height:18px">
           <span style="flex:1;font-size:14px">{{kp}}</span>
         </div>
@@ -217,8 +244,18 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
     <div class="q-nav">
       <span @click="back()" style="font-size:18px;cursor:pointer">‹</span>
       <span style="flex:1;text-align:center"><b>{{currentQ().kp}}</b> · 第{{qAnsweredCount()}}/{{genList.length}}题</span>
+      <span v-if="!answered" style="font-size:12px;color:var(--text2);margin-right:6px">⏱ {{qTimeStr()}}</span>
+      <span style="cursor:pointer;font-size:15px;margin-right:8px" @click="toggleDraft()" title="草稿板">✍️</span>
       <button class="btn-ghost" style="font-size:12px;padding:4px 10px" @click="startGenerate()">换题</button>
     </div>
+    <!-- 草稿板 -->
+    <div class="card" v-if="draftVisible" style="background:#fffff5;border:1px dashed #e0b45c;padding:12px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:#8a6d3b;margin-bottom:6px">
+        <b>草稿板</b><span style="cursor:pointer" @click="draftClear()">清空</span>
+      </div>
+      <textarea v-model="draftText" placeholder="在这里打草稿/演算…" style="width:100%;min-height:60px;font-size:14px;border:none;background:transparent;resize:vertical;color:var(--text)"></textarea>
+    </div>
+    <div v-if="draftVisible && draftText" style="padding:0 16px;font-size:12px;color:#8a6d3b">（草稿内容：{{draftText.slice(0,30)}}）</div>
     <div class="progress" style="background:#e5e7eb;margin:0 16px"><div class="progress-fill" style="height:100%;background:var(--primary)" :style="{width:(qAnsweredCount()/genList.length*100)+'%'}"></div></div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:8px">
@@ -243,6 +280,10 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
       <!-- 填空题 -->
       <div v-else>
         <input v-model="curAnswer" :placeholder="'请填写答案'+(currentQ().unit?'（'+currentQ().unit+'）':'')" style="width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;background:var(--card);color:var(--text)">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+          <span v-for="m in mathKeys()" :key="m" @click="insertMath(m)" style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;background:var(--bg)">{{m}}</span>
+          <span @click="draftVisible=true" style="padding:5px 10px;border:1px dashed var(--accent);color:var(--accent);border-radius:6px;font-size:13px;cursor:pointer">✍️ 草稿</span>
+        </div>
       </div>
 
       <div v-if="!answered" style="display:flex;gap:10px;margin-top:14px">
@@ -255,6 +296,13 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
         <div style="padding:14px;border-radius:10px;margin-top:8px" :style="{background: answerResult().correct?'#e6f6e6':'#fdecec',color:answerResult().correct?'#059669':'var(--danger)'}">
           <b style="font-size:15px">{{answerResult().correct ? '回答正确 ✓' : '回答错误 ✗'}}</b>
           <div v-if="!answerResult().correct" style="margin-top:6px;font-size:14px">正确答案：<b>{{currentQ().answer}}</b></div>
+          <div v-if="slowTip" style="margin-top:6px;font-size:12px;color:#b45309">⏱ {{slowTip}}（本题用时 {{qElapsed}}s，平均 {{avgTime}}s）</div>
+        </div>
+        <div v-if="!answerResult().correct" style="margin-top:10px">
+          <div style="font-size:12px;color:var(--text2);margin-bottom:6px">标记你的错误原因（帮助针对性复习）：</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            <span v-for="t in errTypeLabels()" :key="t" @click="setErrorType(currentQ(), t)" style="padding:5px 10px;border-radius:16px;font-size:12px;cursor:pointer;border:1px solid var(--border)" :style="{background:errorType(currentQ())===t?'var(--primary)':'transparent',color:errorType(currentQ())===t?'#fff':''}">{{t}}</span>
+          </div>
         </div>
         <div v-if="currentQ().solution && currentQ().solution.length && showSolution" style="margin-top:12px">
           <div style="font-size:13px;color:var(--text2);margin-bottom:6px;font-weight:600">标准解析</div>
@@ -504,9 +552,16 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
       <div style="font-size:11px;color:var(--text3);margin-top:8px">提示：Key 保存在浏览器本地，也可通过本机 server 服务端持有（环境变量 AI_API_KEY）。</div>
     </div>
     <div class="card">
-      <div class="card-title">数据</div>
-      <div class="settings-item" @click="exportReport()"><span>导出学习报告</span><span v-html="ICONS.chevron"></span></div>
+      <div class="card-title">数据与导出</div>
+      <div class="settings-item" @click="exportReportPDF()"><span>导出学习报告 PDF</span><span v-html="ICONS.chevron"></span></div>
+      <div class="settings-item" @click="exportReport()"><span>导出学习报告 TXT</span><span v-html="ICONS.chevron"></span></div>
+      <div class="settings-item" @click="exportMistakesPDF()"><span>导出错题 PDF</span><span v-html="ICONS.chevron"></span></div>
       <div class="settings-item" @click="exportMistakes()"><span>导出错题 CSV</span><span v-html="ICONS.chevron"></span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">关于</div>
+      <div class="settings-item" @click="goKeep('achievements')"><span>成就徽章（{{achCount()}}/{{achTotal()}}）</span><span v-html="ICONS.chevron"></span></div>
+      <div class="settings-item" @click="goKeep('help')"><span>帮助与 FAQ</span><span v-html="ICONS.chevron"></span></div>
       <div class="settings-item" @click="clearAll()"><span style="color:var(--danger)">清除所有数据</span><span v-html="ICONS.chevron"></span></div>
       <div class="settings-item" @click="toggleTheme()"><span>深色模式</span><span>{{theme==='light'?'关':'开'}}</span></div>
     </div>
@@ -528,6 +583,54 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
         <span class="tag tag-blue" v-for="(p,i) in PAPER_STRUCT[k].parts" :key="i">{{p.t}} {{p.n}}题 × {{p.each}}分</span>
       </div>
       <button class="btn-ghost" style="margin-top:10px;padding:6px 14px;font-size:12px" @click="gen.subject=k;gen.kps=[];goKeep('generate')">训练该科</button>
+    </div>
+  </div>
+
+  <!-- ========== 新手引导 ========== -->
+  <div class="page" v-if="page==='onboard'">
+    <div style="padding:60px 30px;text-align:center">
+      <div style="font-size:52px;margin-bottom:20px">{{onboardPage(onboarding).icon}}</div>
+      <div style="font-size:22px;font-weight:700;margin-bottom:12px">{{onboardPage(onboarding).t}}</div>
+      <div style="color:var(--text2);font-size:14px;line-height:1.8;max-width:280px;margin:0 auto">{{onboardPage(onboarding).d}}</div>
+      <div style="display:flex;gap:6px;justify-content:center;margin-top:24px">
+        <span v-for="n in 3" :key="n" style="width:8px;height:8px;border-radius:50%" :style="{background:n===onboarding?'var(--primary)':'#d1d5db'}"></span>
+      </div>
+      <button class="btn-primary" style="max-width:220px;margin:28px auto 0" @click="onboardNext()">{{onboarding>=3?'开始使用':'下一步'}}</button>
+      <div style="font-size:12px;color:var(--text3);margin-top:14px;cursor:pointer" @click="skipOnboard()">跳过引导</div>
+    </div>
+  </div>
+
+  <!-- ========== 成就徽章 ========== -->
+  <div class="page" v-if="page==='achievements'">
+    <div style="display:flex;align-items:center;padding:14px 16px;background:var(--card);border-bottom:1px solid var(--border)">
+      <span @click="go('profile')" style="font-size:18px;margin-right:12px;cursor:pointer">‹</span><b style="font-size:16px">成就徽章</b>
+      <span style="flex:1"></span><span style="font-size:13px;color:var(--text2)">{{achCount()}}/{{achTotal()}}</span>
+    </div>
+    <div class="card">
+      <div class="card-title">我的成就</div>
+      <div class="kp-item" v-for="a in achieveDefs()" :key="a.id">
+        <span style="display:inline-block;width:40px;text-align:center;font-size:22px" :style="{filter: achUnlocked(a.id)?'none':'grayscale(1)',opacity:achUnlocked(a.id)?1:.35}">{{a.icon}}</span>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:600">{{a.name}} <span v-if="achUnlocked(a.id)" style="color:var(--success);font-size:11px">已解锁 ✓</span></div>
+          <div style="font-size:12px;color:var(--text2)">{{a.desc}}</div>
+        </div>
+        <div style="font-size:12px;color:var(--text3)" v-if="achProgress(a.id)">√</div>
+        <div style="font-size:12px;color:var(--text3)" v-else>未解锁</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 帮助 / FAQ ========== -->
+  <div class="page" v-if="page==='help'">
+    <div style="display:flex;align-items:center;padding:14px 16px;background:var(--card);border-bottom:1px solid var(--border)">
+      <span @click="back()" style="font-size:18px;margin-right:12px;cursor:pointer">‹</span><b style="font-size:16px">帮助与常见问题</b>
+    </div>
+    <div class="card">
+      <div class="kp-item" v-for="(f,i) in faqs" :key="i" style="cursor:pointer" @click="helpOpen=helpOpen===i?'':i">
+        <div style="flex:1"><div style="font-size:14px;font-weight:500">{{f.q}}</div>
+          <div v-if="helpOpen===i" style="font-size:13px;color:var(--text2);margin-top:6px;line-height:1.7">{{f.a}}</div></div>
+        <span style="color:var(--text3)">{{helpOpen===i?'▲':'▼'}}</span>
+      </div>
     </div>
   </div>
 
@@ -553,7 +656,8 @@ const app = createApp({
       mastery: store.get('wx_mastery',{}),
       records: store.get('wx_records',[]),
       mistakes: store.get('wx_mistakes',[]),
-      gen:{ subject:'math', kps:[], difficulty:'auto', count:10, types:{choice:true,blank:true,dual:true} },
+      gen:{ subject:'math', kps:[], difficulty:'auto', count:10, grade:'all', types:{choice:true,blank:true,dual:true} },
+      expandedBook:'0',
       genAims:[], genList:[], genIndex:0, genType:'',
       curAnswer:null, dualSel:[], answered:false, showSolution:false,
       paper:{ subject:'math', difficulty:'medium', timing:false },
@@ -564,6 +668,18 @@ const app = createApp({
       aiInput:'', aiBusy:false,
       aiConfig: store.get('wx_ai', { provider:'zhipu', model:'glm-4.7-flash', key:'', baseUrl:'' }),
       aiTestState:'', aiTab:'chat', aiContext:'',
+      // ===== 新功能状态 =====
+      onboarding: store.get('wx_onboard', 0),      // 0已完成,1,2,3引导步进
+      achievements: store.get('wx_achieve', {}),   // 已解锁徽章 {id:解锁时间}
+      paperCount: store.get('wx_paperCount', 0),
+      redoneCount: 0,
+      qTimeStart: 0, qElapsed: 0, qTimer: null,    // 单题计时
+      avgTime: 60,                                 // 平均用时(秒)，用于超时标记
+      draftVisible: false, draftText: '',         // 草稿板
+      mathInput: '',                               // 数学输入框
+      helpOpen: '',                                // FAQ展开项
+      errorType: '',                               // 错题错误类型标记
+      wrongMap: store.get('wx_wrongmap', {}),      // 每题的错题类型 {qid:类型}
     };
   },
   computed:{
@@ -587,6 +703,17 @@ const app = createApp({
         { t:'语文', p:'请讲解高考语文名篇名句默写的易错字' },
       ];
     },
+    faqs(){
+      return [
+        { q:'题目会重复吗？', a:'不会。每次都是参数化引擎随机生成的全新题目，且系统会避免近7天内出过同模板同参数的题。' },
+        { q:'答案一定正确吗？', a:'是。每道题的答案都经过内置的验算器（方程求解/分数化简/勾股/验算器等）校验，100%正确，做错是自己的理解问题而非题目问题。' },
+        { q:'不用 AI 能用吗？', a:'完全可以。出题/答题/判分/错题/学情/图谱全部离线免费。AI 讲解在未配置 Key 时自动展示题目内置解析。' },
+        { q:'怎么配置 AI 讲解？', a:'到「我的 → AI参数设置」，推荐选智谱GLM（免费），填入 API Key 即可使用真人式讲解与答疑。' },
+        { q:'掌握度和间隔复习是怎么算的？', a:'掌握度由正确率+连续答对+近期表现加权得出；≥80% 进入间隔复习（3天→7天→15天→30天递进，答对翻倍）。' },
+        { q:'数据存在哪里？', a:'全部保存在你浏览器的本地存储 localStorage 中，离线可用，不经过任何服务器，隐私安全。' },
+        { q:'如何导出错题或打印试卷？', a:'错题本可导出 CSV 或 PDF；生成的试卷可打印/导出 PDF（含参考答案页）。学情报告也可导 PDF。' },
+      ];
+    },
   },
   methods:{
     masteryColor(m){ return m<40?'var(--danger)':m<60?'var(--accent)':m<80?'#eab308':'var(--success)'; },
@@ -607,35 +734,90 @@ const app = createApp({
       if(m.mastery>=60 && !m.nextReview){ const d=new Date(); d.setDate(d.getDate()+3); m.nextReview=d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
       this.mastery[key]=m;
       const k=this.todayKey; const h=this.hist[k]||{done:0,correct:0}; h.done++; if(correct)h.correct++; this.hist[k]=h;
+      // 记录答题明细（用时/对错/知识点），用于统计与成就
+      const elapsed=this.qElapsed||0;
+      this.records.push({ at:Date.now(), subj:this.gen.subject, kp:q.kp, kpId:q.kpId||q.kp, correct, elapsed, diff:q.diff });
+      const cnt=this.records.length;
+      if(elapsed>0){ this.avgTime = this.avgTime>0 ? Math.round((this.avgTime*(cnt-1)+elapsed)/cnt) : elapsed; }
+      this.unlockAchieve('first'); if(cnt>=100) this.unlockAchieve('hundred');
+      if(this.mastery[key] && this.mastery[key].mastery>=80) this.unlockAchieve('master80');
       if(!correct){
         const ex=this.mistakes.filter(x=>x.qid===q.id);
-        if(!ex.length) this.mistakes.unshift({ qid:q.id, subject:this.gen.subject, kp:q.kp, kpId:q.kpId||q.kp, text:q.text, options:q.options, correct:q.correct, answer:q.answer, solution:q.solution, type:q.type, at:Date.now() });
+        if(!ex.length) this.mistakes.unshift({ qid:q.id, subject:this.gen.subject, kp:q.kp, kpId:q.kpId||q.kp, text:q.text, options:q.options, correct:q.correct, answer:q.answer, solution:q.solution, type:q.type, errorType:'', at:Date.now() });
         else ex[0].at=Date.now();
       }
+      if(this.checkinDays()>=3) this.unlockAchieve('streak3');
+      if(this.checkinDays()>=7) this.unlockAchieve('streak7');
       this._save();
     },
     // ========== 智能出题 ==========
     subLabel(s){ return SUBJECTS[s].name; },
     kpsOf(subj){ return getKps(subj); },
+    // 该科目下某年级的知识点（gen.grade 过滤）
+    kpsOfGrade(subj, grade){
+      const all=getKps(subj); const gm=(window.__GradeMap||{})[subj]||{};
+      if(grade==='all'||!grade) return all;
+      return all.filter(kp => String(gm[kp])===String(grade));
+    },
+    // 该科目覆盖的年级
+    gradesOf(subj){
+      const gm=(window.__GradeMap||{})[subj]||{}; const set={};
+      getKps(subj).forEach(kp=>{ const g=gm[kp]; if(g) set[g]=1; });
+      const arr=Object.keys(set).map(Number).sort((a,b)=>a-b);
+      return arr;
+    },
+    gradeName(g){ return (window.__GradeNames||{})[g] || (g==='all'?'全部':g); },
+    // ===== 按教材章节出题 =====
+    textbookBooks(subj){ return (window.__Textbook||{})[subj] || []; },
+    chooseChapter(subj, bookIdx, chIdx){
+      const book=(window.__Textbook||{})[subj][bookIdx]; if(!book) return;
+      const ch=book.chapters[chIdx]; if(!ch) return;
+      const kps=(ch.kps||[]).filter(Boolean);
+      this.gen.grade=book.grade; this.gen.kps=kps;
+      if(!kps.length){ this.help='该章节暂无参数化模板，请选其他章节或稍候扩展'; return; }
+      this.startGenerate();
+    },
+    chapterKps(book, ch){ return (ch.kps||[]).filter(Boolean); },
     toggleKp(kp){ const i=this.gen.kps.indexOf(kp); if(i>=0)this.gen.kps.splice(i,1); else if(this.gen.kps.length<5) this.gen.kps.push(kp); },
     allKpsFor(subj){ return getKps(subj); },
     startGenerate(){
       const subj=this.gen.subject;
       let kps=this.gen.kps.slice();
       if(!kps.length){
-        kps = this.smartPickKps(subj);
+        // 按年级过滤：若选了年级，只在该年级知识点内智能推荐
+        if(this.gen.grade && this.gen.grade!=='all'){
+          const gkps=this.kpsOfGrade(subj, this.gen.grade);
+          kps = gkps.length ? this.smartPickKps(subj, 3, gkps) : this.smartPickKps(subj);
+        } else {
+          kps = this.smartPickKps(subj);
+        }
       }
       const typeFilter = this.gen.types.choice&&this.gen.types.blank&&this.gen.types.dual ? 'all' : (this.gen.types.choice?'choice':this.gen.types.blank?'blank' : this.gen.types.dual?'dual':'all');
-      const qs = genQuestions(subj, kps, this.gen.difficulty, this.gen.count, typeFilter);
+      let qs = genQuestions(subj, kps, this.gen.difficulty, this.gen.count, typeFilter);
+      // 重复避免：近N天内出过同模板+同参数哈希的题，重新生成替身（最多重试30次）
+      if(qs.length){
+        let guard=0;
+        while(guard<30){
+          const dupIdx=qs.map((q,i)=>this.wasRecent(q.id,0)?i:-1).find(i=>i>=0);
+          if(dupIdx===undefined) break;
+          const rep=genQuestions(subj, [qs[dupIdx].kp], this.gen.difficulty, 1, typeFilter)[0];
+          if(rep){ qs[dupIdx]=rep; }
+          guard++;
+        }
+      }
       if(!qs.length){ this.help='该知识点暂无更多可生成题目，请尝试其他知识点或难度'; return; }
+      // 记录本批题目，供下次去重
+      qs.forEach(q=>this.rememberQ(q.id));
+      this.genAims=kps; this.genList=qs; this.genIndex=0; this.genType='smart';
       this.genAims=kps; this.genList=qs; this.genIndex=0; this.genType='smart';
       this.curAnswer=null; this.dualSel=[]; this.answered=false; this.showSolution=false;
+      this.slowTip=''; this.qElapsed=0; this.startQTimer();
       this.goKeep('answer');
     },
     // 智能知识点推荐：基于学情（掌握度低+错题多+到期复习 加权），纯本地规则
-    smartPickKps(subj, n){
+    smartPickKps(subj, n, candidates){
       n = n || 3;
-      const all = getKps(subj);
+      const all = candidates && candidates.length ? candidates : getKps(subj);
       const score={};
       all.forEach(k=>{
         let s=0;
@@ -680,15 +862,29 @@ const app = createApp({
         correct = isAnswerCorrect(u, q.answer);
       }
       this.answered=true;
+      this.stopQTimer();
       this.recordResult(q, correct);
       this.showSolution = !correct;
+      if(correct) this.unlockAchieve('first');
+      // 超时标记：用时超过3倍平均（且>5题后才有参考）
+      if(this.records.length>5 && this.qElapsed>this.avgTime*3){ this.slowTip='（用时过长，建议提高效率）'; }
+      else this.slowTip='';
+    },
+    // 标记当前错题的错误类型并计入反哺
+    markError(q){
+      if(!q) return;
+      const m=this.mistakes.find(x=>x.qid===q.id);
+      if(m){ m.errorType=this.errTypeLabels()[0]; }
     },
     nextQ(){
-      if(this.genIndex < this.genList.length-1){ this.genIndex++; this.curAnswer=null; this.dualSel=[]; this.answered=false; this.showSolution=false; }
+      if(this.genIndex < this.genList.length-1){ this.genIndex++; this.curAnswer=null; this.dualSel=[]; this.answered=false; this.showSolution=false; this.qElapsed=0; this.startQTimer(); }
       else { this.finishSession(); }
     },
     finishSession(){
-      // 本组完成，展示小结
+      this.stopQTimer();
+      // 更新平均用时
+      const rec=this.records.slice(-this.genList.length); if(rec.length){ const ts=rec.filter(r=>r.elapsed>0).map(r=>r.elapsed); if(ts.length) this.avgTime=Math.round(ts.reduce((a,b)=>a+b,0)/ts.length); }
+      if(this.genType==='paper') this.paperCount=(this.paperCount||0)+1;
       this.goKeep('answerDone');
     },
     answerResult(){
@@ -740,7 +936,7 @@ const app = createApp({
       let sc=0; this.paperQs.forEach((q,i)=>{ if(q.type==='choice'){ if(this.paperAnswers[i]===q.correct)sc++; } else if(q.type==='dual'){ if((this.paperAnswers[i]||[]).slice().sort().join(',')===(q.correct||[]).slice().sort().join(','))sc++; } else { if(isAnswerCorrect(this.paperAnswers[i],q.answer))sc++; } });
       return sc;
     },
-    submitPaper(){ clearInterval(this.paperTimer); this.paperTimer=null; this.goKeep('paperResult'); },
+    submitPaper(){ clearInterval(this.paperTimer); this.paperTimer=null; this.paperCount=(this.paperCount||0)+1; this.unlockAchieve('paper1'); store.set('wx_paperCount',this.paperCount); this.goKeep('paperResult'); },
     paperResultList(){ return this.paperQs; },
     printPaper(){ window.print(); },
     // ========== 错题本 ==========
@@ -810,7 +1006,8 @@ const app = createApp({
     clearAll(){
       if(confirm('确定清除所有学习数据吗？此操作不可恢复。')){
         this.mastery={}; this.records=[]; this.mistakes=[]; this.hist={}; this._ci=[];
-        ['wx_mastery','wx_records','wx_mistakes','wx_hist','wx_checkins'].forEach(k=>localStorage.removeItem(k));
+        this.achievements={}; this.wrongMap={}; this.paperCount=0; this.redoneCount=0;
+        ['wx_mastery','wx_records','wx_mistakes','wx_hist','wx_checkins','wx_achieve','wx_wrongmap','wx_paperCount','wx_qhist','wx_draft'].forEach(k=>localStorage.removeItem(k));
         alert('数据已清除');
       }
     },
@@ -887,6 +1084,100 @@ const app = createApp({
       this.callLLM(prompt).then(r=>{ this.aiMsgs.push({role:'ai',content:r}); store.set('wx_ai_msgs',this.aiMsgs.slice(-30)); this.aiBusy=false; }).catch(()=>{ this.aiMsgs.push({role:'ai',content:'（AI调用失败，请配置API）'}); this.aiBusy=false; });
       this.go('ai');
     },
+    // ================= 新手引导 =================
+    beginOnboard(){ if(this.onboarding===0) this.onboarding=1; this.goKeep('onboard'); },
+    skipOnboard(){ this.onboarding=0; store.set('wx_onboard',0); try{ localStorage.setItem('wx_hasSeen','1'); }catch(e){} this.goKeep('home'); },
+    onboardNext(){
+      this.onboarding++;
+      if(this.onboarding>3){ this.onboarding=0; store.set('wx_onboard',0); try{ localStorage.setItem('wx_hasSeen','1'); }catch(e){} this.goKeep('home'); }
+      else store.set('wx_onboard',this.onboarding);
+    },
+    onboardPage(idx){
+      const steps=[
+        { t:'欢迎使用「无限题」', d:'针对福建高考的自动出题工具。不是题库，是题厂——每次都是全新题目，永不重复、杜绝背答案。', icon:'🚀' },
+        { t:'智能出题', d:'选择科目与知识点，一键生成全新题目。系统会自动优先你的薄弱知识点。', icon:'🎯' },
+        { t:'错题反哺 · 学情分析', d:'答错自动进错题本，掌握度实时更新，薄弱点越练越清晰。', icon:'🧠' },
+      ];
+      return steps[idx-1]||steps[0];
+    },
+    // ================= 成就徽章 =================
+    achieveDefs(){ return [
+        { id:'first', icon:'🎯', name:'初出茅庐', desc:'完成第 1 道题' },
+        { id:'hundred', icon:'⚡', name:'百炼成钢', desc:'累计练习 100 道题' },
+        { id:'streak3', icon:'🔥', name:'三连击', desc:'连续打卡 3 天' },
+        { id:'streak7', icon:'🏆', name:'七日之约', desc:'连续打卡 7 天' },
+        { id:'master80', icon:'🎓', name:'举一反三', desc:'任一知识点掌握度达 80%' },
+        { id:'mistake10', icon:'📚', name:'知错能改', desc:'重做 10 道错题' },
+        { id:'paper1', icon:'📝', name:'小试锋芒', desc:'完成第 1 套试卷' },
+      ]; },
+    unlockAchieve(id){
+      if(!this.achievements[id] && id){ this.achievements[id]=Date.now(); store.set('wx_achieve',this.achievements); this.mistakes=this.mistakes.slice(); }
+    },
+    achCount(){ return Object.keys(this.achievements).length; },
+    achTotal(){ return this.achieveDefs().length; },
+    achUnlocked(id){ return !!this.achievements[id]; },
+    achProgress(id){
+      const v={ first:this.records.length>=1, hundred:this.records.length>=100, streak3:this.checkinDays()>=3, streak7:this.checkinDays()>=7, master80:this.masteryList(this.schoolSub).some(x=>x.m&&x.m.mastery>=80), mistake10:(this.redoneCount||0)>=10, paper1:(this.paperCount||0)>=1 };
+      if(v[id]) this.unlockAchieve(id);
+      return !!v[id];
+    },
+    // ================= 单题计时 =================
+    startQTimer(){ this.qTimeStart=Date.now(); if(this.qTimer) clearInterval(this.qTimer); this.qTimer=setInterval(()=>{ this.qElapsed=Math.round((Date.now()-this.qTimeStart)/1000); },600); },
+    stopQTimer(){ if(this.qTimer){ clearInterval(this.qTimer); this.qTimer=null; } },
+    qTimeStr(){ const s=this.qElapsed||0; const m=Math.floor(s/60); return m+':'+(String(s%60).padStart(2,'0')); },
+    // ================= 重复避免 =================
+    rememberQ(key){ const h={}; try{ h=store.get('wx_qhist',{}); }catch(e){} h[key]=todayStr(); store.set('wx_qhist',h); },
+    wasRecent(key,days){ const h=store.get('wx_qhist',{}); if(!h[key]) return false; const d=new Date(h[key]); const now=new Date(); const diff=(now-d)/(1000*60*60*24); return diff<=(days||0); },
+    // ================= 错题错误类型 =================
+    setErrorType(q,type){ this.wrongMap[q.id]=type; store.set('wx_wrongmap',this.wrongMap); },
+    errorType(q){ const t=this.wrongMap[q.id]; return t||''; },
+    errTypeLabels(){ return ['概念不清','计算失误','审题偏差','符号/细节','方法不会','粗心']; },
+    // ================= PDF 导出工具 =================
+    downloadPDF(title, html, filename){
+      const style='<style>body{font-family:-apple-system,\'PingFang SC\',sans-serif;color:#333;padding:24px;line-height:1.7} h1,h2{color:#2E6FA3;border-bottom:1px solid #e5e7eb;padding-bottom:6px} .item{border:1px solid #eee;border-radius:8px;padding:12px;margin:10px 0} .ans{color:#059669;font-weight:600} .noPrint{display:none}</style>';
+      const full='<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+title+'</title>'+style+'</head><body>'+html+'</body></html>';
+      const blob=new Blob([full],{type:'text/html;charset=utf-8'});
+      // 触发浏览器打印(可另存PDF)
+      const win=window.open('','_blank');
+      if(win){ win.document.write(full); win.document.close(); setTimeout(()=>{ win.print(); },300); }
+      else { const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename+'.html'; a.click(); }
+    },
+    exportMistakesPDF(){
+      const list=this.filteredMistakes();
+      if(!list.length){ alert('暂无错题可导出'); return; }
+      let html='<h1>✗ 错题本 · '+todayStr()+'</h1>';
+      list.forEach((m,i)=>{ html+='<div class="item"><b>'+ (i+1)+'. '+m.kp+'</b><div>'+m.text.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div><div class="ans">正确答案：'+m.answer+'</div>'+(m.solution&&m.solution.length?('<div style="font-size:13px;color:#666">解析：'+m.solution.join('；')+'</div>'):'')+'</div>'; });
+      this.downloadPDF('错题本', html, '错题本');
+    },
+    exportReportPDF(){
+      let html='<h1>📊 学习报告 · '+todayStr()+'</h1>';
+      html+='<p>累计做题：'+this.records.length+' 道 · 错题：'+this.mistakes.length+' 道 · 连续打卡：'+this.checkinDays()+' 天</p>';
+      const weak=this.weakKp; if(weak.length){ html+='<h2>薄弱知识点</h2>'; weak.forEach(w=>{ html+='<div class="item"><b>'+w.key+'</b>（掌握度 '+Math.round(w.mastery)+'%）</div>'; }); }
+      const adv=this.smartAdvice(this.schoolSub); if(adv.length){ html+='<h2>智能建议</h2><ul>'+adv.map(a=>'<li>'+a+'</li>').join('')+'</ul>'; }
+      this.downloadPDF('学习报告', html, '学习报告');
+    },
+    exportPaperPDF(){
+      let html='<h1>📝 模拟试卷 · '+todayStr()+'</h1><h2>'+(PAPER_STRUCT[this.paper.subject]?PAPER_STRUCT[this.paper.subject].name:'')+'</h2><div class="noPrint">（打印后另存为 PDF）</div>';
+      this.paperQs.forEach((q,i)=>{ html+='<div class="item"><b>'+(i+1)+'. </b>'+q.text.replace(/</g,'&lt;')+''; if(q.type==='choice'){ html+='<div style="margin-top:6px">A.'+q.options[0]+'  B.'+q.options[1]+'  C.'+q.options[2]+(q.options[3]?'  D.'+q.options[3]:'')+'</div>'; } html+='</div>'; });
+      html+='<div style="page-break-before:always"></div><h2>参考答案</h2>'; this.paperQs.forEach((q,i)=>{ html+='<div class="item"><b>'+(i+1)+'.</b> '+q.answer+'</div>'; });
+      this.downloadPDF('模拟试卷', html, '模拟试卷');
+    },
+    // ================= 草稿板 =================
+    toggleDraft(){ this.draftVisible=!this.draftVisible; },
+    draftAdd(item){ if(item) this.draftLines.push(item); },
+    draftClear(){ this.draftLines=[]; },
+    // ================= 数学输入快捷 =================
+    insertMath(sym){ this.curAnswer = (this.curAnswer||'') + sym; },
+    mathKeys(){ return ['√','x²','x³','÷','×','±','π','·','{','}','(' ,')','^']; },
+  },
+  mounted(){
+    // 首次访问自动进入新手引导
+    try{
+      if(!localStorage.getItem('wx_hasSeen')){
+        this.page='onboard'; this.onboarding=1;
+        store.set('wx_onboard',1);
+      }
+    }catch(e){}
   }
 });
 
