@@ -205,7 +205,7 @@
 
   // ===== 等比数列 =====
   templates.push({
-    id: 'M-GEO-001', kp: '等比数列', kpId: 'kp-geo', type: 'blank', diff: 2,
+    id: 'M-GEOS-001', kp: '等比数列', kpId: 'kp-geo', type: 'blank', diff: 2,
     gen: function () {
       var a1 = E.ri(1, 3), q = E.pick([2, 3, -2]), n = E.ri(3, 5);
       var r = E.geoSum(a1, q, n);
@@ -356,6 +356,263 @@
       var fNum = (r * r * seg);
       return { text: '半径为 ' + r + ' 的圆中，圆心角为 ' + deg + '° 的扇形面积为 ______。',
         answer: (Number.isInteger(fNum) ? fNum : fNum) + 'π', solution: ['S = n/360 · πr² = ' + seg + '×π×' + (r * r) + ' = ' + (Number.isInteger(fNum) ? fNum : '') + 'π'], input: 'num_pi' };
+    }
+  });
+
+  // ===== 平面向量（必修第二册 第6章） =====
+  templates.push({
+    id: 'M-VEC-001', kp: '平面向量', kpId: 'kp-vec', type: 'blank', diff: 2,
+    gen: function () {
+      // 已知向量 a=(x1,y1), b=(x2,y2)，求 a+b 或 a-b
+      var x1 = E.ri(-4, 4), y1 = E.ri(-4, 4);
+      var x2 = E.ri(-4, 4), y2 = E.ri(-4, 4);
+      var op = E.pick(['add', 'sub']);
+      var rx = op === 'add' ? x1 + x2 : x1 - x2;
+      var ry = op === 'add' ? y1 + y2 : y1 - y2;
+      return { text: '已知向量 a = (' + x1 + ', ' + y1 + ')，b = (' + x2 + ', ' + y2 + ')，则 a' + (op === 'add' ? '+' : '-') + 'b = ______。',
+        answer: '(' + rx + ', ' + ry + ')', solution: ['对应坐标相' + (op === 'add' ? '加' : '减') + '：(' + rx + ', ' + ry + ')'], input: 'coordinate' };
+    }
+  });
+  templates.push({
+    id: 'M-VEC-002', kp: '平面向量', kpId: 'kp-vec', type: 'choice', diff: 2,
+    gen: function () {
+      // 已知 a=(1,2), b=(x,y)，若 a⊥b 则 a·b=0，求b的一个坐标关系
+      var x1 = E.ri(1, 3), y1 = E.ri(1, 4);
+      // 选一个向量 b 与 a 的数量积为0：bx*x1 + by*y1 = 0
+      var k = E.ri(1, 3);
+      var bx = y1 * k, by = -x1 * k; // 满足 a·b = x1*y1*k - y1*x1*k = 0
+      var dot = x1 * bx + y1 * by; // =0 验证
+      var f = new E.Frac(y1, x1).toStr();
+      return { text: '已知向量 a = (' + x1 + ', ' + y1 + ')，若 b ⊥ a，则下列向量中与 a 垂直的是（ ）',
+        options: ['(' + bx + ', ' + by + ')', '(' + (-bx) + ', ' + by + ')', '(' + bx + ', ' + -by + ')', '(' + y1 + ', ' + x1 + ')'],
+        correct: 0, answer: '(' + bx + ', ' + by + ')',
+        solution: ['a⊥b ⇔ a·b = 0，即 ' + x1 + '×' + bx + ' + ' + y1 + '×' + by + ' = ' + dot + '，故 ' + '(' + bx + ', ' + by + ')' + ' 垂直'] };
+    }
+  });
+
+  // ===== 立体几何初步（必修第二册 第8章） =====
+  templates.push({
+    id: 'M-SOLID-001', kp: '立体几何', kpId: 'kp-solid', type: 'blank', diff: 2,
+    gen: function () {
+      // 长方体对角线/棱长。棱长 a,b,c，求体对角线
+      var a = E.ri(2, 6), b = E.ri(2, 6), c = E.ri(2, 6);
+      // 常用勾股组合保证简洁：用 (a,b,c)=(3,4,5) 变式
+      var set = E.pick([[3,4,5],[6,8,10],[5,12,13],[1,2,2]]);
+      a=set[0]; b=set[1]; c=set[2]; if(set[0]===1){a=E.ri(2,4);b=E.ri(2,4);c=E.ri(2,4);}
+      var diag2 = a*a+b*b+c*c;
+      var diag = E.radStr(diag2);
+      return { text: '长方体从一个顶点出发的三条棱长分别为 ' + a + '、' + b + '、' + c + '，则它的体对角线长为 ______。',
+        answer: diag, solution: ['体对角线 d = √(a²+b²+c²) = √(' + diag2 + ') = ' + diag], input: 'text' };
+    }
+  });
+  templates.push({
+    id: 'M-SOLID-002', kp: '立体几何', kpId: 'kp-solid', type: 'blank', diff: 2,
+    gen: function () {
+      // 圆柱体积 V=πr²h
+      var r = E.ri(2, 5), h = E.ri(2, 6);
+      var v = r * r * h;
+      return { text: '底面半径为 ' + r + '、高为 ' + h + ' 的圆柱体积为 ______。',
+        answer: v + 'π', solution: ['V = πr²h = π×' + r + '²×' + h + ' = ' + v + 'π'], input: 'num_pi' };
+    }
+  });
+  templates.push({
+    id: 'M-SOLID-003', kp: '立体几何', kpId: 'kp-solid', type: 'blank', diff: 3,
+    gen: function () {
+      // 圆锥体积 V = (1/3)πr²h
+      var r = E.ri(2, 4), h = E.ri(3, 6);
+      var s = r * r * h;
+      // 保证 s 能被3整除，让答案是整数π
+      if (s % 3 !== 0) h = h + (3 - s % 3) % 3;
+      s = r * r * h;
+      var v = new E.Frac(s, 3).toStr();
+      return { text: '底面半径为 ' + r + '、高为 ' + h + ' 的圆锥体积为 ______。',
+        answer: v + 'π', solution: ['V = (1/3)πr²h = (1/3)×π×' + r + '²×' + h + ' = ' + v + 'π'], input: 'num_pi' };
+    }
+  });
+
+  // ===== 空间向量与立体几何（选择性必修第一册 第1章） =====
+  templates.push({
+    id: 'M-SPVEC-001', kp: '空间向量', kpId: 'kp-spvec', type: 'blank', diff: 3,
+    gen: function () {
+      // 求空间向量模长 |a| = √(x²+y²+z²)
+      var set = E.pick([[1,2,2],[2,3,6],[1,1,2],[3,4,0]]);
+      var x=set[0],y=set[1],z=set[2];
+      var m2 = x*x+y*y+z*z;
+      var m = E.radStr(m2);
+      return { text: '已知空间向量 a = (' + x + ', ' + y + ', ' + z + ')，则 |a| = ______。',
+        answer: m, solution: ['|a| = √(x²+y²+z²) = √(' + m2 + ') = ' + m], input: 'text' };
+    }
+  });
+  templates.push({
+    id: 'M-SPVEC-002', kp: '空间向量', kpId: 'kp-spvec', type: 'blank', diff: 3,
+    gen: function () {
+      // 空间向量数量积 cos = (a·b)/(|a||b|)，选特例给整数答案
+      // a=(1,0,0), b=(x,y,0)，则 a·b=x, cosθ=x/|b|
+      var x = E.ri(1, 2), y = E.pick([1, 2, 3]);
+      // 造一个 cos 是简单分数：取 |b|=2x, y=√3 x → 但角度特殊
+      // 用 a=(0,1,0), b=(√3,1,0) 不太行。改用垂直判定：a·b
+      var set = E.pick([[1,3],[1,2],[2,1]]);
+      var bx=set[0], by=set[1];
+      var dot = bx*0 + by*1; // a=(0,1,0) 固定
+      // a=(0,1,0), b=(bx,by,bz) a·b = by
+      return { text: '已知向量 a = (0, 1, 0)，b = (' + bx + ', ' + by + ', 0)，则 a·b = ______。',
+        answer: String(by), solution: ['a·b = x₁x₂ + y₁y₂ + z₁z₂ = 0×' + bx + ' + 1×' + by + ' + 0×0 = ' + by], input: 'num' };
+    }
+  });
+
+  // ===== 圆锥曲线（选择性必修第一册 第3章） =====
+  templates.push({
+    id: 'M-CONIC-001', kp: '圆锥曲线', kpId: 'kp-conic', type: 'blank', diff: 3,
+    gen: function () {
+      // 椭圆 x²/a² + y²/b² = 1 焦点距 c=√(a²-b²)，求 c 或焦距
+      var a = E.ri(3, 8), b = E.ri(2, 7);
+      while (b >= a) b = E.ri(2, a - 1);
+      var c2 = a*a - b*b;
+      var sq = Math.sqrt(c2);
+      var c = Number.isInteger(sq) ? String(sq) : '√' + c2;
+      return { text: '椭圆 x²/' + (a*a) + ' + y²/' + (b*b) + ' = 1 的焦距为 ______。',
+        answer: '2' + (c.indexOf('√')===0 ? c : c), solution: ['c = √(a²-b²) = √(' + (a*a) + '-' + (b*b) + ') = ' + c, '焦距 = 2c = 2' + c],
+        input: 'text' };
+    }
+  });
+  templates.push({
+    id: 'M-CONIC-002', kp: '圆锥曲线', kpId: 'kp-conic', type: 'blank', diff: 3,
+    gen: function () {
+      // 抛物线 y² = 2px 焦点为 (p/2, 0)，求焦点
+      var p = E.pick([2, 4, 6, 8, 10]);
+      var f = p / 2;
+      return { text: '抛物线 y² = ' + (2*p) + 'x 的焦点坐标为 ______。',
+        answer: '(' + f + ', 0)', solution: ['y² = 2px，焦点为 (p/2, 0) = (' + p + '/2, 0) = (' + f + ', 0)'], input: 'coordinate' };
+    }
+  });
+  templates.push({
+    id: 'M-CONIC-003', kp: '圆锥曲线', kpId: 'kp-conic', type: 'blank', diff: 3,
+    gen: function () {
+      // 双曲线 x²/a² - y²/b² = 1 渐近线 y = ±(b/a)x
+      var a = E.ri(2, 4), b = E.ri(2, 4);
+      var f = new E.Frac(b, a);
+      var sim = f.toNum() === 1 ? '1' : (f.d===1? String(f.n) : f.toStr());
+      return { text: '双曲线 x²/' + (a*a) + ' - y²/' + (b*b) + ' = 1 的渐近线方程为 y = ±______。x',
+        answer: sim, solution: ['渐近线 y = ±(b/a)x = ±(' + b + '/' + a + ')x = ±' + sim + 'x'], input: 'num_frac' };
+    }
+  });
+
+  // ===== 导数及其应用（选择性必修第二册 第5章） =====
+  templates.push({
+    id: 'M-DERIV-001', kp: '导数', kpId: 'kp-deriv', type: 'blank', diff: 3,
+    gen: function () {
+      // 多项式求导 f(x)=ax^n → f'=anx^(n-1)，求 f'(1)
+      var a = E.ri(2, 5), n = E.ri(2, 4), x0 = E.pick([1, 2]);
+      var coef = a * n;
+      var val = coef * Math.pow(x0, n - 1);
+      return { text: '已知 f(x) = ' + a + 'x' + (n === 2 ? '²' : n === 3 ? '³' : '⁴') + '，则 f\'(' + x0 + ') = ______。',
+        answer: String(val), solution: ['f\'(x) = ' + (a*n) + 'x' + (n-1===1?'':n-1===2?'²':n-1===3?'³':'') , 'f\'(' + x0 + ') = ' + coef + '×' + x0 + '^' + (n-1) + ' = ' + val], input: 'num' };
+    }
+  });
+  templates.push({
+    id: 'M-DERIV-002', kp: '导数', kpId: 'kp-deriv', type: 'blank', diff: 3,
+    gen: function () {
+      // 切线斜率 = f'(x0)。f(x)=x²，在 x0 斜率 2x0
+      var x0 = E.ri(1, 4);
+      var k = 2 * x0;
+      var y0 = x0 * x0;
+      return { text: '曲线 y = x² 在点 (' + x0 + ', ' + y0 + ') 处的切线斜率为 ______。',
+        answer: String(k), solution: ['y\' = 2x，斜率 k = f\'(' + x0 + ') = 2×' + x0 + ' = ' + k], input: 'num' };
+    }
+  });
+
+  // ===== 计数原理（选择性必修第三册 第6章） =====
+  templates.push({
+    id: 'M-COUNT-001', kp: '排列组合', kpId: 'kp-count', type: 'blank', diff: 3,
+    gen: function () {
+      // 排列 A(n,2) = n(n-1)
+      var n = E.ri(4, 9);
+      var ans = n * (n - 1);
+      return { text: '从 ' + n + ' 个不同元素中任取 2 个排成一列，共有 ______ 种排法。',
+        answer: String(ans), solution: ['A(' + n + ',2) = ' + n + '×' + (n - 1) + ' = ' + ans], input: 'num' };
+    }
+  });
+  templates.push({
+    id: 'M-COUNT-002', kp: '排列组合', kpId: 'kp-count', type: 'blank', diff: 3,
+    gen: function () {
+      // 组合 C(n,2) = n(n-1)/2
+      var n = E.ri(5, 12);
+      while (n * (n - 1) / 2 % 1 !== 0) n = E.ri(5, 12);
+      var ans = n * (n - 1) / 2;
+      return { text: '从 ' + n + ' 个同学中任选 2 名参加比赛，共有 ______ 种选法。',
+        answer: String(ans), solution: ['C(' + n + ',2) = ' + n + '×' + (n - 1) + '/2 = ' + ans], input: 'num' };
+    }
+  });
+  templates.push({
+    id: 'M-COUNT-003', kp: '排列组合', kpId: 'kp-count', type: 'blank', diff: 3,
+    gen: function () {
+      // 二项式 (a+b)^n 的展开式常数/一项系数：C(n,k)
+      var n = E.ri(3, 6);
+      var ans = E.combo(n, 1) + 1; // ... 计算 (x+1)^n 中 x 的系数为 n
+      return { text: '(x + 1)' + (n===3?'³':n===4?'⁴':n===5?'⁵':'⁶') + ' 的展开式中 x 的系数为 ______。',
+        answer: String(n), solution: ['用二项式定理，(x+1)ⁿ 中 x 的系数 = C(n,1) = ' + n], input: 'num' };
+    }
+  });
+
+  // ===== 随机变量及分布（选择性必修第三册 第7章） =====
+  templates.push({
+    id: 'M-DISTRIB-001', kp: '随机变量', kpId: 'kp-distrib', type: 'blank', diff: 3,
+    gen: function () {
+      // 二项分布 X~B(n,p) 期望 E(X)=np，方差 D(X)=np(1-p)
+      var n = E.ri(3, 6), p = E.pick([0.5, 0.4, 0.2, 0.3]);
+      var which = E.pick(['ex', 'var']);
+      if (which === 'ex') {
+        var exp = n * p;
+        var expStr = String(+exp.toFixed(4));
+        return { text: '设 X ~ B(' + n + ', ' + p + ')，则 E(X) = ______。',
+          answer: expStr, solution: ['二项分布期望 E(X) = np = ' + n + '×' + p + ' = ' + expStr], input: 'num' };
+      }
+      var varv = n * p * (1 - p);
+      var varStr = String(+varv.toFixed(4));
+      return { text: '设 X ~ B(' + n + ', ' + p + ')，则 D(X) = ______。',
+        answer: varStr, solution: ['二项分布方差 D(X) = np(1-p) = ' + n + '×' + p + '×' + (1 - p) + ' = ' + varStr], input: 'num' };
+    }
+  });
+  templates.push({
+    id: 'M-DISTRIB-002', kp: '随机变量', kpId: 'kp-distrib', type: 'blank', diff: 3,
+    gen: function () {
+      // 离散型随机变量分布列：概率和为1求缺失项。选 p1,p2 使 missing 为 0.1 的倍数
+      var combo = E.pick([[0.3,0.2],[0.4,0.3],[0.5,0.2],[0.3,0.4],[0.2,0.5],[0.1,0.2]]);
+      var p1 = combo[0], p2 = combo[1];
+      var missing = Math.round((1 - p1 - p2) * 100) / 100;
+      return { text: '某随机变量 X 的分布列中 P(X=1) = ' + p1 + '，P(X=2) = ' + p2 + '，则 P(X=3) = ______。',
+        answer: String(missing), solution: ['所有概率和为 1：P(X=3) = 1 - ' + p1 + ' - ' + p2 + ' = ' + missing], input: 'num' };
+    }
+  });
+
+  // ===== 成对数据的统计分析（选择性必修第三册 第8章） =====
+  templates.push({
+    id: 'M-REGR-001', kp: '成对数据回归', kpId: 'kp-regr', type: 'blank', diff: 3,
+    gen: function () {
+      // 回归直线必过样本中心 (x̄, ȳ)。给一组数据算 x̄
+      var n = E.pick([3, 4]);
+      var xs = [], ys = [];
+      for (var i = 0; i < n; i++) { xs.push(E.ri(1, 5)); ys.push(E.ri(1, 6)); }
+      var sx = xs.reduce(function (s, v) { return s + v; }, 0);
+      var sy = ys.reduce(function (s, v) { return s + v; }, 0);
+      var mx = sx / n, my = sy / n;
+      var mxStr = Number.isInteger(mx) ? String(mx) : new E.Frac(sx, n).toStr();
+      var myStr = Number.isInteger(my) ? String(my) : new E.Frac(sy, n).toStr();
+      return { text: '已知 ' + n + ' 组样本数据 (' + xs.join(',') + ') 与 (' + ys.join(',') + ') 对应的回归直线必过点 ______。',
+        answer: '(' + mxStr + ', ' + myStr + ')', solution: ['回归直线过样本中心 (x̄, ȳ) = (' + mxStr + ', ' + myStr + ')'], input: 'coordinate' };
+    }
+  });
+  templates.push({
+    id: 'M-REGR-002', kp: '成对数据回归', kpId: 'kp-regr', type: 'blank', diff: 3,
+    gen: function () {
+      // 回归直线 y = bx + a。给每增1个x增b，且过点(x̄,ȳ)反求截距
+      var b = E.ri(2, 4), a = E.ri(-3, 3);
+      var xbar = E.ri(2, 4);
+      var ybar = b * xbar + a;
+      var aStr = a >= 0 ? ' + ' + a : (a < 0 ? ' - ' + (-a) : '');
+      var eq = b + 'x' + aStr;
+      return { text: '已知某线性回归中，变量 x 每增加 1 个单位，变量 y 平均增加 ' + b + ' 个单位，且样本中心为 (' + xbar + ', ' + ybar + ')，则回归方程为 y = ______。',
+        answer: eq, solution: ['斜率 b = ' + b + '，代入样本中心求截距：a = ȳ - bx̄ = ' + ybar + ' - ' + b + '×' + xbar + ' = ' + a, '回归方程 y = ' + eq], input: 'text' };
     }
   });
 
