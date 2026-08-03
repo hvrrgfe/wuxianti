@@ -1,0 +1,14 @@
+{
+  "name": "无限题 · 福建高考刷题",
+  "short_name": "无限题",
+  "description": "针对福建高考的自动出题刷题工具，永远做不完的题，每次都是新题，杜绝背答案。",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f5f0e8",
+  "theme_color": "#2E6FA3",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

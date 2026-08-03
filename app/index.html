@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#2E6FA3">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="无限题">
+<title>无限题 · 福建高考刷题</title>
+<style>
+:root{--primary:#2E6FA3;--accent:#E88A6A;--success:#6DBF6D;--danger:#E05B5B;--bg:#F5F0E8;--card:#fff;--text:#2C2C2C;--text2:#6b7280;--text3:#9ca3af;--border:#e9e4da}
+[data-theme="dark"]{--primary:#3b86c4;--accent:#f0a68d;--bg:#111827;--card:#1f2937;--text:#f3f4f6;--text2:#9ca3af;--text3:#6b7280;--border:#374151}
+[data-theme="dark"] body{background:#111827}
+[data-theme="dark"] .card,[data-theme="dark"] .tabbar,[data-theme="dark"] .darktab{background:#1f2937}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Helvetica Neue','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+.page{min-height:100vh;padding-bottom:70px}
+.card{background:var(--card);border-radius:12px;padding:16px;margin:12px 16px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.card-title{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.subtitle{font-size:12px;color:var(--text2)}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;line-height:18px;margin-right:4px}
+.tag-red{background:#fee2e2;color:#dc2626}.tag-orange{background:#fef3c7;color:#d97706}.tag-green{background:#d1fae5;color:#059669}.tag-blue{background:#dbeafe;color:#2563eb}
+.hero{background:linear-gradient(135deg,#2E6FA3,#4a93c7 60%,#7ab3d9);padding:20px 20px 64px;color:#fff;border-radius:0 0 24px 24px}
+.hero-title{font-size:22px;font-weight:700;display:flex;align-items:center;gap:8px}
+.hero-title svg{width:24px;height:24px}
+.hero-sub{font-size:13px;opacity:.92;margin-top:4px}
+.hero-stats{display:flex;gap:10px;margin-top:16px}
+.hstat{flex:1;background:rgba(255,255,255,.16);border-radius:10px;padding:10px;text-align:center}
+.hstat .n{font-size:20px;font-weight:700}.hstat .l{font-size:11px;opacity:.85}
+.stat-row{display:flex;gap:12px;margin:12px 16px;margin-top:-40px;position:relative;z-index:2}
+.stat-card{flex:1;background:#fff;border-radius:12px;padding:14px 8px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.stat-card .num{font-size:20px;font-weight:700}.stat-card .label{font-size:11px;color:var(--text2);margin-top:3px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:8px}
+.grid-item{display:flex;flex-direction:column;align-items:center;padding:14px 2px;gap:6px;cursor:pointer;border-radius:10px}
+.grid-item:active{background:#f3f4f6}.icon-wrap{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#eef2ff,#e0e7ff);color:var(--primary)}
+.icon-wrap svg{width:22px;height:22px}
+.tool-item{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid #f3f4f6;cursor:pointer}
+.tool-item:last-child{border-bottom:none}.tool-item:active{background:#fafafa}
+.tool-name{font-size:14px;font-weight:500}.tool-desc{font-size:12px;color:var(--text2);margin-top:2px}
+.btn-primary{background:var(--primary);color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:600;width:100%;cursor:pointer;text-align:center}
+.btn-primary:active{opacity:.9}.btn-block{margin:12px 16px;display:block}
+.mastery-bar{height:8px;background:#f3f4f6;border-radius:4px;overflow:hidden;margin-top:6px}
+.mastery-fill{height:100%;border-radius:4px;transition:width .4s}
+.kp-item{display:flex;align-items:center;gap:10px;padding:12px 4px;border-bottom:1px solid #f3f4f6}
+.kp-item:last-child{border-bottom:none}
+.opt-item{padding:14px 14px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:10px;cursor:pointer;font-size:15px;transition:all .15s}
+.opt-item.selected{border-color:var(--primary);background:#eef4fb}
+.opt-item.correct{border-color:var(--success);background:#e6f6e6}
+.opt-item.wrong{border-color:var(--danger);background:#fdecec}
+.dual-opt{padding:14px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:10px;cursor:pointer}
+.dual-opt.selected{border-color:var(--primary);background:#eef4fb}
+.q-nav{display:flex;align-items:center;gap:8px;padding:12px 16px;font-size:13px;color:var(--text2)}
+.progress{height:5px;background:#e5e7eb;border-radius:3px;overflow:hidden;margin-top:10px}
+.progress-fill{height:100%;background:var(--primary);border-radius:3px}
+.tabbar{position:fixed;bottom:0;left:0;right:0;background:#fff;display:flex;border-top:1px solid #eee;z-index:50;padding-bottom:env(safe-area-inset-bottom)}
+.darktab{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 0 6px;cursor:pointer;font-size:11px;color:var(--text3)}
+.darktab.active{color:var(--primary);font-weight:600}
+.darktab svg{width:22px;height:22px;margin-bottom:2px}
+.solution-step{padding:8px 0;border-bottom:1px dashed #eee;font-size:14px;color:var(--text)}
+.trend-chart{display:flex;align-items:flex-end;gap:4px;height:120px;padding:10px 4px}
+.trend-bar{flex:1;background:var(--primary);border-radius:4px 4px 0 0;min-width:8px}
+.date-chip{padding:6px 14px;border-radius:16px;background:var(--card);border:1px solid var(--border);font-size:13px;cursor:pointer}
+.date-chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.mm-tab{padding:8px 18px;border-radius:18px;background:var(--card);font-size:14px;cursor:pointer;border:1px solid var(--border);text-align:center}
+.mm-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.paper-head{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--primary);color:#fff}
+.mastery-legend{display:flex;gap:14px;font-size:12px;color:var(--text2);padding:0 16px;flex-wrap:wrap}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.settings-item{display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:1px solid #f3f4f6;cursor:pointer;font-size:14px}
+.settings-item:last-child{border-bottom:none}
+.empty{padding:40px 20px;text-align:center;color:var(--text3);font-size:14px}
+.btn-ghost{background:var(--card);border:1px solid var(--primary);color:var(--primary);border-radius:10px;padding:10px 18px;font-size:14px;cursor:pointer}
+.paper-head span[style]{color:#fff}
+@media print{.tabbar,.no-print{display:none!important}.page{padding-bottom:0}}
+</style>
+<!-- lib 在 body 尾部加载，避免 head 中外部大 JS 在 minis 下失效 -->
+</head>
+<body>
+<div id="app"></div>
+<script src="data/engine.js"></script>
+<script src="data/math_templates.js"></script>
+<script src="data/physics_templates.js"></script>
+<script src="data/chemistry_templates.js"></script>
+<script src="data/biology_templates.js"></script>
+<script src="data/english_templates.js"></script>
+<script src="data/chinese_templates.js"></script>
+<link rel="stylesheet" href="lib/vant.css">
+<script src="lib/vue.global.prod.js"></script>
+<script src="lib/vant.min.js"></script>
+<script src="app.js" defer></script>
+</body>
+</html>
+
