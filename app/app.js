@@ -57,6 +57,271 @@ function getKps(subject){
   return out;
 }
 let _idSeq = 1;
+
+// ============ 知识点讲解库（命题套路 / 解题方法 / 易错陷阱）============
+// 每个问答题按 kp 自动注入 keypoint(考点讲解)/method(解题套路)/trap(易错点)，
+// 让同学不仅会做题，更理解知识点、刷透相应题型。
+var KNOWLEDGE = {
+  // ---------- 数学 ----------
+  '集合':{ keypoint:'集合的表示(列举/描述)、元素个数、交集∩并集∪补集。A={x∈Z|a≤x≤b}的元素个数=b-a+1。',
+    method:'数轴上画出区间再数整数点；A∩B取公共部分元素。',
+    trap:'注意 x∈Z(整数) 限定，端点是否取等看是≤还是<' },
+  '复数':{ keypoint:'复数z=a+bi,i²=-1。加减乘除按多项式运算，(a+bi)(1-i)展开合并实部虚部。',
+    method:'直接展开，合并 i 项；i²换成-1。',
+    trap:'i²=-1常被误写成1；实部不含i' },
+  '一元一次方程':{ keypoint:'ax+b=c ⇒ x=(c-b)/a。移项变号。',
+    method:'移项合并同类项，系数化1。',
+    trap:'移项要变号；分子分母勿抄反' },
+  '一元二次方程':{ keypoint:'ax²+bx+c=0，求根公式 x=[-b±√(b²-4ac)]/2a。判别式Δ=b²-4ac决定根的情况。',
+    method:'先看Δ；能因式分解(x-m)(x-n)=0则两整根。',
+    trap:'Δ<0不能说"无解"而说"无实数根"；二次项系数不为0' },
+  '韦达定理':{ keypoint:'x²+px+q=0两根满足 x1+x2=-p, x1·x2=q。',
+    method:'根与系数关系直接代，不必真的解根。',
+    trap:'a x²+b x+c=0 时是 x1+x2=-b/a, x1x2=c/a，别漏了分母a' },
+  '一元一次不等式':{ keypoint:'ax+b>0 ⇒ x>-b/a(a>0)；a<0要变号。',
+    method:'移项后两边同除以a，注意a正负决定方向。',
+    trap:'除以负数要变不等号方向，最易错' },
+  '一次函数':{ keypoint:'y=kx+b，斜率k=(y2-y1)/(x2-x1)，过点求k。',
+    method:'代入两点列方程组解k,b。',
+    trap:'斜率公式分子分母要对齐，(y2-y1)/(x2-x1)' },
+  '二次函数':{ keypoint:'顶点式y=a(x-h)²+k，顶点(h,k)；一般式y=ax²+bx+c顶点(-b/2a,(4ac-b²)/4a)。',
+    method:'配方或用顶点公式。',
+    trap:'顶点横坐标是h不是-h，(x-h)²里h前符号' },
+  '反比例函数':{ keypoint:'y=k/x，过点(x,y)⇒k=xy。',
+    method:'代一个点求k=xy。',
+    trap:'k=xy不是y/x；k≠0' },
+  '幂运算':{ keypoint:'同底数幂相乘指数相加: a^m·a^n=a^(m+n)。',
+    method:'底数相同直接加指数。',
+    trap:'同底幂相乘才是加指数，相乘≠乘指数' },
+  '三角求值':{ keypoint:'特殊角三角函数值: sin30=1/2,sin45=√2/2,sin60=√3/2,cos0=1,cos60=1/2,tan45=1,tan60=√3等。',
+    method:'记住30/45/60、0/90的特殊值表。',
+    trap:'sin/cos/tan别记混；角度制与弧度制换算' },
+  '等差数列':{ keypoint:'a_n=a1+(n-1)d；前n项和S_n=n(a1+a_n)/2。',
+    method:'套通项与求和公式。',
+    trap:'n项和公式记忆；公差d可正可负可0' },
+  '等比数列':{ keypoint:'a_n=a1·q^(n-1)；S_n=a1(q^n-1)/(q-1),q≠1。',
+    method:'套公式，注意q的幂次。',
+    trap:'q=1时不能用公式；q^(n-1)别算成q^n' },
+  '古典概型':{ keypoint:'P(A)=有利结果数/总结果数，各结果等可能。',
+    method:'数总数→数有利→求比。',
+    trap:'前提是等可能；总样本空间别数错' },
+  '平面向量':{ keypoint:'向量a=(x1,y1),b=(x2,y2)。加法(x1+x2,y1+y2)；a·b=x1x2+y1y2；a⊥b⇔a·b=0。',
+    method:'坐标运算直接算；垂直用数量积=0。',
+    trap:'a⊥b是数量积=0；向量减法y也要减' },
+  '立体几何':{ keypoint:'长方体体对角线d=√(a²+b²+c²)；圆柱V=πr²h；圆锥V=⅓πr²h；棱台侧面积等。',
+    method:'记体积/表面积公式，逐项代入。',
+    trap:'圆锥体积⅓倍别漏；单位换算' },
+  '空间向量':{ keypoint:'空间向量a=(x,y,z)，模长|a|=√(x²+y²+z²)；数量积a·b=x1x2+y1y2+z1z2。',
+    method:'坐标代入模长/数量积公式。',
+    trap:'空间向量是三维坐标，别漏z分量' },
+  '圆锥曲线':{ keypoint:'椭圆x²/a²+y²/b²=1焦点c=√(a²-b²)；双曲线渐近线y=±b/a·x；抛物线y²=2px焦点(p/2,0)。',
+    method:'识别曲线标准式，代a,b,c关系。',
+    trap:'椭圆a²=b²+c²，双曲线a²=b²+c²(对勾)；抛物线焦点p/2' },
+  '导数':{ keypoint:'(x^n)\'=n·x^(n-1)。切线斜率k=f\'(x0)。',
+    method:'求导后代x0。',
+    trap:'导数指数-1；常数导数为0' },
+  '排列组合':{ keypoint:'排列A(n,2)=n(n-1)；组合C(n,2)=n(n-1)/2；二项式(x+1)^n中x^1系数=C(n,1)=n。',
+    method:'判断有顺序用排列、无顺序用组合。',
+    trap:'排列有顺序组合无顺序；二项式系数C不是x系数' },
+  '随机变量':{ keypoint:'二项分布X~B(n,p)：E(X)=np，D(X)=np(1-p)；分布列概率和为1。',
+    method:'直接套均值方差公式；分布列补足使和为1。',
+    trap:'D(X)=np(1-p)别写成np；分布列所有概率之和=1' },
+  '成对数据回归':{ keypoint:'回归直线必过样本中心(x̄,ȳ)；斜率表示x每增1个单位y平均增加的量。',
+    method:'求样本均值；(x̄,ȳ)代回归方程求截距。',
+    trap:'回归线过中心点但不过每个样本点' },
+  // ---------- 物理 ----------
+  '速度':{ keypoint:'平均速度v=s/t(总位移/总时间)。',
+    method:'v=s/t直接算，单位km/h、m/s。',
+    trap:'是位移/时间不是路程/时间(平均速度vs平均速率)' },
+  '匀变速直线运动':{ keypoint:'v=v0+at，a=(v-v0)/t。',
+    method:'v0,v,t已知直接求a=(v-v0)/t。',
+    trap:'加速度有方向，v减v0的顺序别反' },
+  '匀变速位移':{ keypoint:'s=v0t+½at²。',
+    method:'代入v0,a,t逐步算。',
+    trap:'½at² 别漏½；t要代时间差' },
+  '牛顿第二定律':{ keypoint:'F=ma(合力)。求力F=ma，或m=F/a。',
+    method:'求合力→用F=ma。',
+    trap:'F是合力不是某个分力' },
+  '重力':{ keypoint:'G=mg，取g=9.8或10 N/kg。',
+    method:'G=mg直接算。',
+    trap:'方向竖直向下；质量kg×g' },
+  '密度':{ keypoint:'ρ=m/V，单位g/cm³或kg/m³。',
+    method:'ρ=m/V。',
+    trap:'单位统一；密度与质量体积无关' },
+  '液体压强':{ keypoint:'p=ρgh(液体)，ρ水=1.0×10³kg/m³。',
+    method:'p=ρgh。',
+    trap:'液体压强与深度h,密度,无关横截面积' },
+  '压强':{ keypoint:'p=F/S(固体)，单位Pa=N/m²。',
+    method:'p=F/S。',
+    trap:'F是压力(垂直于接触面)，S是受力面积' },
+  '功':{ keypoint:'W=Fs，单位J。',
+    method:'W=Fs。',
+    trap:'力与位移方向要一致才做功' },
+  '功率':{ keypoint:'P=W/t，单位W。',
+    method:'P=W/t。',
+    trap:'功率=功/时间' },
+  '欧姆定律':{ keypoint:'I=U/R，R=U/I。',
+    method:'I=U/R。',
+    trap:'R=U/I不是R=UI；单位欧姆' },
+  '串联/并联电阻':{ keypoint:'串联R=R1+R2；并联1/R=1/R1+1/R2。',
+    method:'串联相加，并联用倒数。',
+    trap:'并联总电阻小于任一支路，别相加' },
+  '电功率':{ keypoint:'P=UI，单位W。',
+    method:'P=UI。',
+    trap:'P=UI，纯电阻才P=I²R' },
+  '比热容':{ keypoint:'Q=cmΔt，c水=4.2×10³J/(kg·℃)。',
+    method:'Q=cmΔt。',
+    trap:'Δt是温度变化(升高/降低)不是末温' },
+  '光的反射':{ keypoint:'反射角=入射角，均以法线为基准。',
+    method:'反射角=入射角，几何求角。',
+    trap:'反射角是光线与法线夹角，不是与镜面夹角' },
+  '透镜成像':{ keypoint:'凸透镜：u>2f成倒立缩小实像，f<u<2f倒立放大实像，u<f正立放大虚像。',
+    method:'比较物距与焦距判断成像。',
+    trap:'"实像倒立、虚像正立"记忆；物距焦距分界' },
+  '双项选择·概念':{ keypoint:'多个概念判断正误，选所有正确项。',
+    method:'逐项判断，全对才6分，漏选得部分分。',
+    trap:'多选题少选得部分分但不能选错项' },
+  '电路分析':{ keypoint:'串联电流处处相等、电压分配；并联电压相等、电流分流。',
+    method:'判断串并联，应用电流电压关系。',
+    trap:'串并联特点易混' },
+  // ---------- 化学 ----------
+  '相对分子质量':{ keypoint:'Mr=各原子相对原子质量之和，如CO₂=44。',
+    method:'查原子量相加。',
+    trap:'原子个数别漏(CO₂有2个O)' },
+  '溶质质量分数':{ keypoint:'w=m溶质/m溶液×100%。',
+    method:'w=溶质质量/溶液质量。',
+    trap:'溶液质量=溶质+溶剂，不是只溶剂' },
+  '溶液稀释':{ keypoint:'稀释前后溶质质量不变：m1·w1=(m1+m水)·w2。',
+    method:'溶质质量守恒列方程。',
+    trap:'加水溶质不变，只稀释' },
+  '物质的量浓度':{ keypoint:'c=n/V，单位mol/L。',
+    method:'c=n/V。',
+    trap:'V是溶液体积不是溶剂体积' },
+  '物质的量':{ keypoint:'n=m/M。',
+    method:'n=m/M。',
+    trap:'M单位g/mol，质量用g' },
+  '化合价':{ keypoint:'化合物中各元素化合价代数和为0。',
+    method:'已知其他折目标元素。',
+    trap:'单质为0；氧化物O为-2' },
+  '方程式配平':{ keypoint:'反应前后原子个数守恒，配平系数。',
+    method:'观察法或最小公倍数法配平。',
+    trap:'系数要为最简整数比' },
+  '质量守恒':{ keypoint:'参加反应的各物质质量总和=生成各物质质量总和。',
+    method:'反应物总质量=生成物总质量。',
+    trap:'"恰好完全反应"是全部反应' },
+  '原子结构':{ keypoint:'质子数Z+中子数N=质量数A。',
+    method:'中子数=质量数-质子数。',
+    trap:'质子数决定元素种类' },
+  '化学键':{ keypoint:'离子键活泼金属与非金属；共价键非金属与非金属。',
+    method:'看成键元素类型。',
+    trap:'含金属的不一定离子键' },
+  '离子共存':{ keypoint:'离子间若生成沉淀/气体/难电离物质(水)则不共存。',
+    method:'检查是否生成沉淀、气体、水。',
+    trap:'注意题目条件如无色、酸性/碱性' },
+  '氧化还原':{ keypoint:'有元素化合价升降的反应。判断标准：有无化合价变化。',
+    method:'标化合价看是否变化。',
+    trap:'复分解反应(交换成分)不是氧化还原' },
+  // ---------- 生物 ----------
+  '细胞分裂':{ keypoint:'有丝分裂后期着丝点分裂、姐妹染色单体分开；染色体加倍。',
+    method:'记各时期染色体/DNA/染色单体数量变化。',
+    trap:'着丝点分裂在后期不在中期' },
+  '细胞呼吸':{ keypoint:'有氧呼吸释放CO₂和H₂O；光合作用产O₂。',
+    method:'一对葡萄糖彻底有氧呼吸产6CO₂+6H₂O。',
+    trap:'光合产O₂、呼吸耗O₂' },
+  '代谢计算':{ keypoint:'每分子葡萄糖彻底有氧呼吸产6mol CO₂。',
+    method:'按比例换算mol数。',
+    trap:'无氧呼吸不产CO₂或产酒精+CO₂' },
+  '能量代谢':{ keypoint:'ATP是细胞直接能源物质。',
+    method:'理解ATP-ADP循环。',
+    trap:'糖是主要能源，ATP是直接能源' },
+  '基因表达':{ keypoint:'转录(DNA→mRNA)在细胞核，翻译(mRNA→蛋白质)在核糖体。',
+    method:'转录核内→翻译质中核糖体。',
+    trap:'转录场所是细胞核不是核糖体' },
+  '遗传·配子比例':{ keypoint:'Aa自交后代aa占1/4；配子比例为A:a=1:1。',
+    method:'画棋盘格或配子概率相乘。',
+    trap:'常染色体隐性病aa才患病' },
+  '遗传·性状分离比':{ keypoint:'Aa×Aa后代表现型3:1(显:隐)。',
+    method:'Aa自交3:1。',
+    trap:'单性状3:1，双性状9:3:3:1' },
+  '遗传·患病概率':{ keypoint:'常染色体隐性病aa患病；Aa×Aa后代患病概率1/4。',
+    method:'分析基因型→算比例。',
+    trap:'显性病与隐性病判断' },
+  '神经调节':{ keypoint:'神经元间通过突触传递，化学信使是神经递质。',
+    method:'兴奋经神经递质在突触传递。',
+    trap:'突触传递是化学信号，单向' },
+  '血糖调节':{ keypoint:'胰岛素降血糖，胰高血糖素升血糖。',
+    method:'记升糖/降糖激素。',
+    trap:'两者功能相反' },
+  '免疫调节':{ keypoint:'产生抗体的是浆细胞(效应B细胞)；免疫系统的三道防线。',
+    method:'记忆各类免疫细胞功能。',
+    trap:'抗体由浆细胞产生，不是B细胞本身' },
+  '种群增长':{ keypoint:'J型曲线理想条件指数增长，S型曲线有限资源受K/2增长最快。',
+    method:'套增长模型计算。',
+    trap:'J型无K值，S型有K值' },
+  '生态系统组成':{ keypoint:'生产者(植物)、消费者(动物)、分解者；三者按营养等级判断。',
+    method:'判断营养角色。',
+    trap:'分解者是微生物如真菌细菌(腐生)' },
+  // ---------- 英语 ----------
+  '一般现在时':{ keypoint:'主语第三人称单数动词加s；表经常性动作、客观事实。',
+    method:'判主语三单→动词+s/es。',
+    trap:'I/you/复数不加s，三单才加' },
+  '一般过去时':{ keypoint:'过去时间状语(ago,yesterday,last night)用过去式。',
+    method:'看时间状语选动词过去式。',
+    trap:'不规则动词过去式要记' },
+  '现在完成时':{ keypoint:'have/has+过去分词，表已完成或持续到现在的动作。',
+    method:'have/has+done。',
+    trap:'与一般过去区分：完成时强调影响"现在"' },
+  '被动语态':{ keypoint:'be+过去分词，主语是动作承受者。',
+    method:'be+done。',
+    trap:'被动要加be，且时态体现在be上' },
+  '主谓一致':{ keypoint:'There be句型谓语与最近名词一致。',
+    method:'There be就近原则：there is a pen and two books。',
+    trap:'就近原则，别被远处名词误导' },
+  '非谓语动词':{ keypoint:'want/decide后接to do；enjoy/finish后ing。',
+    method:'记动词固定接to do或doing。',
+    trap:'want to do(不定式)，enjoy doing(动名词)' },
+  '定语从句':{ keypoint:'关系副词where修饰表地点的先行词。',
+    method:'先行词表地点用where。',
+    trap:'where表地点、when表时间、who/which表人/物' },
+  '名词性从句':{ keypoint:'whether/mif引导宾语从句表"是否"。',
+    method:'疑问用whether/if。',
+    trap:'介词后、句首用whether不用if' },
+  '固定搭配':{ keypoint:'be good at+doing；at是介词后接动名词。',
+    method:'记短语配搭。',
+    trap:'介词后动词用ing' },
+  '词汇辨析':{ keypoint:'根据语境选择最贴切词义。',
+    method:'读完整句子理解语境再选词。',
+    trap:'近义词辨析结合语境' },
+  '情景交际':{ keypoint:'礼貌回应请求/建议常用固定表达。',
+    method:'记高频交际用语。',
+    trap:'回应请求用Sure等，别选不礼貌回应' },
+  // ---------- 语文 ----------
+  '名句默写':{ keypoint:'高考必背篇目名句默写，上下句。',
+    method:'记忆+准确书写，注意易错字。',
+    trap:'同音/形近字易错，如"缘""层"' },
+  '名句理解性默写':{ keypoint:'按意境/情感要求写出对应名句。',
+    method:'理解诗意原文作答。',
+    trap:'要贴合"所指"的句子，不是任意名句' },
+  '成语运用':{ keypoint:'成语适用对象、感情色彩、语义，是否符合语境。',
+    method:'判断成语在句中是否搭配得当。',
+    trap:'望文生义、褒贬误用' },
+  '病句辨析':{ keypoint:'六大语病：搭配不当、成分残缺、语序不当、句式杂糅、不合逻辑、表意不明。',
+    method:'逐句排查主干与搭配。',
+    trap:'"防止...不再"双重否定表肯定(反而要防止)' },
+  '字音':{ keypoint:'常见易错字音。',
+    method:'记正确读音。',
+    trap:'多音字/形近字误读' },
+  '字音字形':{ keypoint:'常见错别字辨析。',
+    method:'记正确字形。',
+    trap:'同音近义词易写错，如"再接再厉"' },
+  '文学常识':{ keypoint:'经典作品作者与内容。',
+    method:'记文学史知识。',
+    trap:'作者与作品对应别记混' }
+};
+
+function kpReplacer(subject, obj){
+  return obj;
+}
 function genQuestions(subject, kps, difficulty, count, typeFilter){
   const arr = getTemplates(subject);
   const pool = arr.filter(t => kps.indexOf(t.kp)>=0 && (!typeFilter || typeFilter==='all' || t.type===typeFilter));
@@ -81,6 +346,9 @@ function genQuestions(subject, kps, difficulty, count, typeFilter){
       diff:t.diff||2, text:q.text, options:q.options||[], answer:q.answer,
       correct:q.correct!==undefined?q.correct:(q.options?q.options.indexOf(q.answer): -1),
       solution:q.solution||[], distractorTypes:q.distractorTypes||[], input:q.input||'text', unit:q.unit||'',
+      keypoint:(KNOWLEDGE&&KNOWLEDGE[t.kp]?KNOWLEDGE[t.kp].keypoint:'')||q.keypoint||'',
+      method:(KNOWLEDGE&&KNOWLEDGE[t.kp]?KNOWLEDGE[t.kp].method:'')||q.method||'',
+      trap:(KNOWLEDGE&&KNOWLEDGE[t.kp]?KNOWLEDGE[t.kp].trap:'')||q.trap||'',
       id: t.id+'#'+(_idSeq++)
     });
   }
@@ -197,9 +465,17 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
           <span style="color:var(--text3)">{{expandedBook===String(bi)?'▲':'▼'}}</span>
         </div>
         <div v-if="expandedBook===String(bi)">
-          <div v-for="(ch,ci) in book.chapters" :key="ci" style="display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-top:1px solid var(--border)">
-            <span style="font-size:13px;flex:1">{{ch.ch}}.{{ch.title}}</span>
-            <button class="btn-ghost" style="font-size:11px;padding:4px 10px" @click="chooseChapter(gen.subject,bi,ci)">{{ch.kps&&ch.kps.length?'本单元出题':'暂无模板'}}</button>
+          <div v-for="(ch,ci) in book.chapters" :key="ci" style="border-top:1px solid var(--border)">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 14px">
+              <span style="font-size:13px;flex:1;cursor:pointer" @click="expandedCh=expandedCh===String(ci)?'':String(ci)">{{ch.ch}}.{{ch.title}} <span v-if="ch.sections&&ch.sections.length" style="color:var(--text3);font-size:11px">{{expandedCh===String(ci)?'▲':'▼ 去细化'}}</span></span>
+              <button class="btn-ghost" style="font-size:11px;padding:4px 10px" @click="chooseChapter(gen.subject,bi,ci)">{{ch.kps&&ch.kps.length?'本单元出题':'暂无模板'}}</button>
+            </div>
+            <div v-if="expandedCh===String(ci)&&(ch.sections||[]).length" style="padding:2px 14px 8px 26px">
+              <div v-for="(se,si) in ch.sections" :key="si" style="display:flex;justify-content:space-between;align-items:center;padding:5px 0">
+                <span style="font-size:12px;color:var(--text2);flex:1">{{ch.ch}}.{{se.sec}} {{se.title}}</span>
+                <button class="btn-ghost" style="font-size:10px;padding:2px 8px" @click="chooseSection(gen.subject,bi,ci,si)">{{se.kps&&se.kps.length?'本节出题':'暂无'}}</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -301,12 +577,26 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
         <div v-if="!answerResult().correct" style="margin-top:10px">
           <div style="font-size:12px;color:var(--text2);margin-bottom:6px">标记你的错误原因（帮助针对性复习）：</div>
           <div style="display:flex;flex-wrap:wrap;gap:6px">
-            <span v-for="t in errTypeLabels()" :key="t" @click="setErrorType(currentQ(), t)" style="padding:5px 10px;border-radius:16px;font-size:12px;cursor:pointer;border:1px solid var(--border)" :style="{background:errorType(currentQ())===t?'var(--primary)':'transparent',color:errorType(currentQ())===t?'#fff':''}">{{t}}</span>
+            <span v-for="t in errTypeLabels()" :key="t" @click="setErrorType(currentQ(), t)" style="padding:5px 10px;border-radius:16px;font-size:12px;cursor:pointer;border:1px solid var(--border)" :style="{background:getErrType(currentQ())===t?'var(--primary)':'transparent',color:getErrType(currentQ())===t?'#fff':''}">{{t}}</span>
           </div>
         </div>
-        <div v-if="currentQ().solution && currentQ().solution.length && showSolution" style="margin-top:12px">
-          <div style="font-size:13px;color:var(--text2);margin-bottom:6px;font-weight:600">标准解析</div>
-          <div class="solution-step" v-for="(s,i) in currentQ().solution" :key="i">{{i+1}}. {{s}}</div>
+        <div v-if="showSolution" style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+          <div v-if="qk('keypoint')" style="background:#eef4fb;border-radius:10px;padding:10px 12px;margin-bottom:8px">
+            <div style="font-size:12px;color:var(--primary);font-weight:600;margin-bottom:3px">📖 考点讲解</div>
+            <div style="font-size:13px">{{qk('keypoint')}}</div>
+          </div>
+          <div v-if="qk('method')" style="background:#e8f8ee;border-radius:10px;padding:10px 12px;margin-bottom:8px">
+            <div style="font-size:12px;color:var(--success);font-weight:600;margin-bottom:3px">💡 解题套路</div>
+            <div style="font-size:13px">{{qk('method')}}</div>
+          </div>
+          <div v-if="qk('trap')" style="background:#fef7e0;border-radius:10px;padding:10px 12px;margin-bottom:8px">
+            <div style="font-size:12px;color:#d97706;font-weight:600;margin-bottom:3px">⚠️ 易错提醒</div>
+            <div style="font-size:13px">{{qk('trap')}}</div>
+          </div>
+          <div v-if="qs().length">
+            <div style="font-size:13px;color:var(--text2);margin-bottom:6px;font-weight:600">📝 标准解析</div>
+            <div class="solution-step" v-for="(s,i) in qs()" :key="i">{{i+1}}. {{s}}</div>
+          </div>
         </div>
         <button class="btn-primary" style="margin-top:16px" @click="nextQ()">{{genIndex<genList.length-1?'下一题 →':'完成本组'}}</button>
       </div>
@@ -658,6 +948,7 @@ const app = createApp({
       mistakes: store.get('wx_mistakes',[]),
       gen:{ subject:'math', kps:[], difficulty:'auto', count:10, grade:'all', types:{choice:true,blank:true,dual:true} },
       expandedBook:'0',
+      expandedCh:'',
       genAims:[], genList:[], genIndex:0, genType:'',
       curAnswer:null, dualSel:[], answered:false, showSolution:false,
       paper:{ subject:'math', difficulty:'medium', timing:false },
@@ -678,7 +969,6 @@ const app = createApp({
       draftVisible: false, draftText: '',         // 草稿板
       mathInput: '',                               // 数学输入框
       helpOpen: '',                                // FAQ展开项
-      errorType: '',                               // 错题错误类型标记
       wrongMap: store.get('wx_wrongmap', {}),      // 每题的错题类型 {qid:类型}
     };
   },
@@ -777,6 +1067,15 @@ const app = createApp({
       if(!kps.length){ this.help='该章节暂无参数化模板，请选其他章节或稍候扩展'; return; }
       this.startGenerate();
     },
+    chooseSection(subj, bookIdx, chIdx, secIdx){
+      const book=(window.__Textbook||{})[subj][bookIdx]; if(!book) return;
+      const ch=book.chapters[chIdx]; if(!ch||!ch.sections) return;
+      const se=ch.sections[secIdx]; if(!se) return;
+      const kps=(se.kps||[]).filter(Boolean);
+      this.gen.grade=book.grade; this.gen.kps=kps;
+      if(!kps.length){ this.help='该小节暂无参数化模板，请选其他单元或稍候扩展'; return; }
+      this.startGenerate();
+    },
     chapterKps(book, ch){ return (ch.kps||[]).filter(Boolean); },
     toggleKp(kp){ const i=this.gen.kps.indexOf(kp); if(i>=0)this.gen.kps.splice(i,1); else if(this.gen.kps.length<5) this.gen.kps.push(kp); },
     allKpsFor(subj){ return getKps(subj); },
@@ -843,6 +1142,8 @@ const app = createApp({
     },
     // ========== 答题 ==========
     currentQ(){ return this.genList[this.genIndex]; },
+    qk(k){ try{ const q=this.genList[this.genIndex]; return q && q[k] || ''; }catch(e){ return ''; } },
+    qs(){ try{ const q=this.genList[this.genIndex]; return (q && q.solution)||[]; }catch(e){ return []; } },
     selectOpt(idx){
       if(this.answered) return;
       this.curAnswer=idx;
@@ -1130,7 +1431,7 @@ const app = createApp({
     wasRecent(key,days){ const h=store.get('wx_qhist',{}); if(!h[key]) return false; const d=new Date(h[key]); const now=new Date(); const diff=(now-d)/(1000*60*60*24); return diff<=(days||0); },
     // ================= 错题错误类型 =================
     setErrorType(q,type){ this.wrongMap[q.id]=type; store.set('wx_wrongmap',this.wrongMap); },
-    errorType(q){ const t=this.wrongMap[q.id]; return t||''; },
+    getErrType(q){ const t=this.wrongMap&&this.wrongMap[q.id]; return t||''; },
     errTypeLabels(){ return ['概念不清','计算失误','审题偏差','符号/细节','方法不会','粗心']; },
     // ================= PDF 导出工具 =================
     downloadPDF(title, html, filename){
