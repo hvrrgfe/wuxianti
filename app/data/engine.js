@@ -164,6 +164,13 @@
   function combo(n, k) { var r = 1; for (var i = 0; i < k; i++) r = r * (n - i) / (i + 1); return Math.round(r); }
 
   // ========== 因式分解 (x²+px+q) ==========
+  function qcoef(c, v) {
+    // 格式化一次项系数：1→+x, -1→-x, 5→+5x, -5→-5x, 0→''
+    if (c === 0) return '';
+    if (c === 1) return '+' + v;
+    if (c === -1) return '-' + v;
+    return (c > 0 ? '+' : '') + c + v;
+  }
   function factorQuad(p, q) {
     // 找 m,n 使 m*n=q, m+n=p
     for (var m = -Math.abs(q); m <= Math.abs(q); m++) {
@@ -205,7 +212,8 @@
     simplifyRadical: simplifyRadical, radStr: radStr, solveQuadratic: solveQuadratic,
     solveLinear: solveLinear, solveLinearSys: solveLinearSys, ariSum: ariSum, geoSum: geoSum,
     pythag: pythag, triAngle: triAngle, polyAngle: polyAngle, variance: variance, combo: combo,
-    factorQuad: factorQuad, verify: verify, computeMastery: computeMastery
+    factorQuad: factorQuad, verify: verify, computeMastery: computeMastery,
+    qcoef: qcoef
   };
   root.__Engine = Engine;
 })(typeof window !== 'undefined' ? window : globalThis);
