@@ -169,5 +169,98 @@
     }
   });
 
+  // ===== 高考核心词汇：英→中文义匹配（按词频加权）=====
+  // 数据来源：FREE高考英语2050核心词汇表（含词频）
+  templates.push({
+    id: 'E-VOCAB-002', kp: '词汇辨析', kpId: 'kp-vocab', type: 'choice', diff: 1,
+    gen: function () {
+      var V = (typeof window !== 'undefined' && window.__ENVOCAB) ? window.__ENVOCAB.core : [];
+      if (!V || !V.length) return null;
+      // 偏向高频核心词：前50%高频词占80%概率
+      var hi = V.filter(function (w) { return w.freq >= 20; });
+      var use = (hi.length && Math.random() < 0.8) ? hi : V;
+      // 选一个正确词(最好有中文义)
+      var correct = null, tries = 0;
+      while (!correct && tries < 10) {
+        var c = E.pick(use);
+        if (c && c.def && c.def.length > 1 && c.w && c.w.length > 1 && !/[A-Z\.][a-z]/.test(c.w)) { correct = c; }
+        tries++;
+      }
+      if (!correct) return null;
+      // 干扰项：取其他3个不同词的英文释义
+      var others = E.shuffle(V.filter(function (w) { return w.w !== correct.w && w.def; }));
+      var wrongDefs = [];
+      for (var i = 0; i < others.length && wrongDefs.length < 3; i++) {
+        var d = others[i].def && others[i].def.split('、')[0];
+        if (d && wrongDefs.indexOf(d) < 0) wrongDefs.push(d);
+      }
+      while (wrongDefs.length < 3) wrongDefs.push('请根据语境作答');
+      var opts = E.shuffle([correct.def].concat(wrongDefs));
+      return { text: '请问单词 "' + correct.w + '" 的中文意思是？',
+        options: opts, correct: opts.indexOf(correct.def), answer: correct.def,
+        solution: ['"' + correct.w + '" 常见义为：' + correct.def + (correct.freq ? '（高考词频 ' + correct.freq + '，高频核心词）' : '')] };
+    }
+  });
+
+  // ===== 高考核心词汇：派生词/词性变化（选择题式，判分准确）=====
+  // 依据 rel 字段（相关词汇/考查形式）出词形变化选择题
+  templates.push({
+    id: 'E-VOCAB-003', kp: '词汇辨析', kpId: 'kp-vocab', type: 'choice', diff: 2,
+    gen: function () {
+      var V = (typeof window !== 'undefined' && window.__ENVOCAB) ? window.__ENVOCAB.core : [];
+      var pool = V.filter(function (w) { return w.rel && w.rel.length && w.def; });
+      if (!pool.length) return null;
+      var word = E.pick(pool), tries = 0;
+      while (tries < 10) { var w2 = E.pick(pool); if (w2 && w2.w && w2.w.length > 2 && w2.rel.length >= 1) { word = w2; break; } tries++; }
+      // 从 rel 里清出干净派生词
+      var rels = [];
+      word.rel.forEach(function (r) {
+        (r.match(/[A-Za-z][A-Za-z']*/g) || []).forEach(function (t) { if (t.toLowerCase() !== word.w.toLowerCase() && rels.indexOf(t) < 0) rels.push(t); });
+      });
+      if (!rels.length) return null;
+      var target = E.pick(rels);
+      // 干扰：其他词的错误派生(TODO: 用高频常见干扰词形) 及选项
+      var wrongRel = [];
+      var others = E.shuffle(pool.filter(function (w) { return w.w !== word.w && w.rel && w.rel.length; }));
+      for (var i = 0; i < others.length && wrongRel.length < 3; i++) {
+        (others[i].rel[0].match(/[A-Za-z][A-Za-z']*/g) || []).forEach(function (t) {
+          if (t.toLowerCase() !== word.w.toLowerCase() && wrongRel.indexOf(t) < 0 && wrongRel.length < 3) wrongRel.push(t);
+        });
+      }
+      // 兜底干扰
+      var pad = ['happiness', 'development', 'carefully', 'suggest', 'beautiful', 'allowed'];
+      for (var k = 0; k < pad.length && wrongRel.length < 3; k++) { if (pad[k].toLowerCase() !== target.toLowerCase() && wrongRel.indexOf(pad[k]) < 0) wrongRel.push(pad[k]); }
+      var opts = E.shuffle([target].concat(wrongRel.slice(0, 3)));
+      return { text: '下列单词中，是 "' + word.w + '" 的相关派生词（词形变化）的是（ ）',
+        options: opts, correct: opts.indexOf(target), answer: target,
+        solution: ['"' + word.w + '" 的相关词形式有：' + rels.join('、'), '根据构词法（前缀/后缀等）判断，应选 ' + target] };
+    }
+  });
+
+  // ===== 高考核心词汇：语境选词（高频词义）=====
+  templates.push({
+    id: 'E-VOCAB-004', kp: '词汇辨析', kpId: 'kp-vocab', type: 'choice', diff: 3,
+    gen: function () {
+      var V = (typeof window !== 'undefined' && window.__ENVOCAB) ? window.__ENVOCAB.core : [];
+      var hi = V.filter(function (w) { return w.freq >= 25 && w.def; });
+      if (!hi.length) hi = V;
+      var correct = null, tries = 0;
+      while (!correct && tries < 12) { var c = E.pick(hi); if (c && c.w && c.w.length > 2 && c.def && !/[\.\-]/.test(c.w)) correct = c; tries++; }
+      if (!correct) return null;
+      // 干扰：取同义近义词义项或泛用干扰
+      var wrongs = [];
+      var others = E.shuffle(V.filter(function (w) { return w.w !== correct.w && w.def; }));
+      for (var i = 0; i < others.length && wrongs.length < 3; i++) {
+        var d = others[i].def && others[i].def.split('、')[0];
+        if (d && wrongs.indexOf(d) < 0 && d !== correct.def) wrongs.push(d);
+      }
+      while (wrongs.length < 3) wrongs.push('above', 'below', 'around')[wrongs.length % 3];
+      var opts = E.shuffle([correct.def].concat(wrongs));
+      var sentence = 'The word "' + correct.w + '" in the passage most likely means ______.';
+      return { text: sentence, options: opts, correct: opts.indexOf(correct.def), answer: correct.def,
+        solution: ['结合语境理解，"' + correct.w + '" 此处意为：' + correct.def + '（高考词频 ' + correct.freq + '）'] };
+    }
+  });
+
   root.__EnglishTemplates = templates;
 })(typeof window !== 'undefined' ? window : globalThis);
