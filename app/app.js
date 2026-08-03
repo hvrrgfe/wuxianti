@@ -101,7 +101,7 @@ function diffColor(d){ return d>=3?'var(--danger)':d===2?'var(--accent)':'var(--
 function masteryColor(m){ return m<40?'var(--danger)':m<60?'var(--accent)':m<80?'#eab308':'var(--success)'; }
 
 // ============ Vue 根实例 ============
-const TPL = `
+const TPL = `<div class="wxt-app" id="wxtRoot">
 <div class="page">
   <!-- ========== 首页 ========== -->
   <div v-if="page==='home'">
@@ -540,7 +540,7 @@ const TPL = `
     <div class="darktab" :class="{active:tab==='ai'}" @click="go('ai')"><span v-html="ICONS.zap"></span>AI</div>
   </div>
 </div>
-`;
+</div>`;
 
 const app = createApp({
   template: TPL,
@@ -890,8 +890,20 @@ const app = createApp({
   }
 });
 
-app.config.globalProperties.SUBJECTS = SUBJECTS;
-app.config.globalProperties.PAPER_STRUCT = PAPER_STRUCT;
-app.config.globalProperties.ICONS = ICONS;
+try{ app.config.globalProperties.SUBJECTS = SUBJECTS; }catch(e){}
+try{ app.config.globalProperties.PAPER_STRUCT = PAPER_STRUCT; }catch(e){}
+try{ app.config.globalProperties.ICONS = ICONS; }catch(e){}
+// 全局错误兜底：任何页面渲染出错时回到首页，避免白屏
+app.config.errorHandler = function(err, instance, info){
+  try{ console.error('[无限题]渲染错误:', err && err.message, info); }catch(e){}
+  try{
+    var el = document.getElementById('app');
+    if(el && el.__vue_app__ && el._instance === undefined){ /* noop */ }
+    // 若已挂载且页面错误，尝试回到首页
+    if(window.location.href.indexOf('error_guard=1')<0){
+      history.replaceState(null,'',location.href.replace(/#.*/,'') + (location.href.indexOf('?')>=0?'&':'?') + 'error_guard=1');
+    }
+  }catch(e2){}
+};
 app.mount('#app');
 document.documentElement.setAttribute('data-theme', (localStorage.getItem('wx_theme')||'light').replace(/"/g,''));
