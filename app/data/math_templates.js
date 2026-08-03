@@ -28,14 +28,17 @@
   templates.push({
     id: 'M-SET-002', kp: '集合', kpId: 'kp-set', type: 'choice', diff: 1,
     gen: function () {
-      // 两个小集合求交集元素个数
-      var a = E.ri(1, 4), b = E.ri(6, 9);
-      // A={1..a}, B={b..9} 交集空
-      var Aend = E.ri(2, 5), Bstart = E.ri(6, 9);
-      var count = 0;
-      var ansStr = String(0);
-      var sol = ['A 的元素最大为 ' + Aend + '，B 的元素最小为 ' + Bstart + '，' + (Aend < Bstart ? '无公共元素' : '') + '，故 A∩B 元素个数为 0'];
-      return { text: '已知 A={1,2,...,' + Aend + '}，B={' + Bstart + ',' + (Bstart + 1) + ',...,9}，则 A∩B 中元素的个数为（ ）', options: ['0', '1', '2', String(Aend)], correct: 0, answer: '0', solution: sol };
+      // 两个区间集合求交集：A={1,2,...,a}，B={b,b+1,...,9}，a≥b 则交集有 (a-b+1) 个
+      var b = E.ri(3, 6), a = b + E.ri(0, 2); // a 略大于等于 b，保证交集非空
+      if (a > 9) a = 9;
+      var overlap = Math.max(0, a - b + 1);
+      var count = overlap;
+      var Astr = a <= 3 ? '{1,2,...,' + a + '}' : '{1,2,...,' + a + '}';
+      var Bstr = b >= 7 ? '{' + b + ',...,9}' : '{' + b + ',' + (b + 1) + ',...,9}';
+      var sol = ['A∩B = {' + b + ',' + (b + 1) + ',...,' + a + '}，共 ' + (a - b + 1) + ' 个元素'];
+      return { text: '已知 A=' + Astr + '，B=' + Bstr + '，则 A∩B 中元素的个数为（ ）',
+        options: [String(overlap), String(overlap + 1), String(overlap - 1 < 0 ? 2 : overlap - 1), String(a)],
+        correct: 0, answer: String(overlap), solution: sol };
     }
   });
 
@@ -90,7 +93,7 @@
       for (var i = 0; i < pad.length && cands.length < 3; i++) if (pad[i] !== ans && cands.indexOf(pad[i]) < 0) cands.push(pad[i]);
       opts = opts.concat(cands.slice(0, 3));
       opts = E.shuffle(opts);
-      return { text: '方程 ' + 'x²' + (b > 0 ? '+' + b + 'x' : b < 0 ? b + 'x' : '') + (c > 0 ? '+' + c : c < 0 ? c : '') + ' = 0 的解为（ ）',
+      return { text: '方程 ' + 'x²' + E.qcoef(b,'x') + (c > 0 ? '+' + c : c < 0 ? c : '') + ' = 0 的解为（ ）',
         options: opts, correct: opts.indexOf(ans) >= 0 ? opts.indexOf(ans) : 0, answer: ans,
         solution: q.solution, distractorTypes: ['符号错', '系数错'] };
     }
@@ -105,7 +108,7 @@
       if (d > 0) ans = '两个不相等的实数根';
       else if (d === 0) ans = '两个相等的实数根';
       else ans = '无实数根';
-      return { text: '方程 ' + a + 'x²' + (b > 0 ? '+' + b + 'x' : b < 0 ? b + 'x' : '') + (c > 0 ? '+' + c : c < 0 ? c : '') + ' = 0 的根的情况是（ ）',
+      return { text: '方程 ' + a + 'x²' + E.qcoef(b,'x') + (c > 0 ? '+' + c : c < 0 ? c : '') + ' = 0 的根的情况是（ ）',
         options: ['两个不相等的实数根', '两个相等的实数根', '无实数根', '无解'], correct: ['两个不相等的实数根', '两个相等的实数根', '无实数根'].indexOf(ans),
         answer: ans, solution: ['Δ = b² - 4ac = ' + b + '² - 4×' + a + '×' + c + ' = ' + d, d > 0 ? 'Δ>0，故有两个不相等实数根' : d === 0 ? 'Δ=0，故有两个相等实数根' : 'Δ<0，故无实数根'] };
     }
@@ -122,7 +125,7 @@
       var which = E.pick(['sum', 'prod']);
       var q = E.solveQuadratic(1, b, c);
       var ans = which === 'sum' ? String(m + n) : String(m * n);
-      return { text: '若 x₁、x₂ 是方程 x²' + (b > 0 ? '+' + b + 'x' : b < 0 ? b + 'x' : '') + (c > 0 ? '+' + c : c < 0 ? c : '') + ' = 0 的两个根，则 ' + (which === 'sum' ? 'x₁+x₂' : 'x₁·x₂') + ' = ______。',
+      return { text: '若 x₁、x₂ 是方程 x²' + E.qcoef(b,'x') + (c > 0 ? '+' + c : c < 0 ? c : '') + ' = 0 的两个根，则 ' + (which === 'sum' ? 'x₁+x₂' : 'x₁·x₂') + ' = ______。',
         answer: ans, solution: [which === 'sum' ? '由韦达定理 x₁+x₂ = -b/a = -' + b + ' = ' + (m + n) : '由韦达定理 x₁·x₂ = c/a = ' + c], input: 'num' };
     }
   });
@@ -132,13 +135,13 @@
     id: 'M-INEQ-001', kp: '一元一次不等式', kpId: 'kp-ineq', type: 'choice', diff: 1,
     gen: function () {
       var a = E.ri(2, 5), b = E.ri(-8, 8);
-      // ax + b > 0
-      var x0 = -b / a;
+      if (b === 0) b = b + 3;
       var gt = b >= 0 ? ' + ' + b : ' - ' + (-b);
-      var ans = 'x > ' + (-b) + '/' + a;
+      var xs = new E.Frac(-b, a).toStr(); // 化简后的解
+      var key2 = (b !== 0) ? new E.Frac(b, a).toStr() : xs;
       return { text: '不等式 ' + a + 'x' + gt + ' > 0 的解集为（ ）',
-        options: ['x > ' + (-b) + '/' + a, 'x < ' + (-b) + '/' + a, 'x > ' + b + '/' + a, 'x < ' + b + '/' + a],
-        correct: 0, answer: 'x > ' + (-b) + '/' + a, solution: [a > 0 ? '系数为正，两边除以' + a + '得 x > ' + (-b) + '/' + a : ''] };
+        options: ['x > ' + xs, 'x < ' + xs, 'x > ' + key2, 'x < ' + key2],
+        correct: 0, answer: 'x > ' + xs, solution: ['两边同除以 ' + a + '，得 x > ' + xs] };
     }
   });
 
@@ -178,7 +181,7 @@
       var x = E.pick([1, 2, 3, 4, 6, -1, -2, -3, -4]);
       if (k % x !== 0) x = E.pick([1, 2, 3, 4, 6, -1, -2, -3, -4]) || 1;
       var y = k / x;
-      var ystr = Number.isInteger(y) ? String(y) : (k + '/' + x);
+      var ystr = Number.isInteger(y) ? String(y) : new E.Frac(k, x).toStr();
       return { text: '反比例函数 y = ' + k + '/x 的图象经过点 (' + x + ', ' + ystr + ')，则 k 的值为 ______。',
         answer: String(k), solution: ['代入：k = x·y = ' + x + '×(' + ystr + ') = ' + k], input: 'num' };
     }
@@ -333,11 +336,11 @@
       var m1 = E.pick([-2, -1, 1, 2]), b1 = y - m1 * x;
       var m2 = E.pick([-2, -1, 1, 2, -3, 3]);
       while (m1 === m2) m2 = E.pick([-2, -1, 1, 2, -3, 3]);
-      b2 = y - m2 * x;
+      var b2 = y - m2 * x;
       // y=m1 x+b1, y=m2 x+b2
       var solv = E.solveLinearSys(m1, -1, -b1, m2, -1, -b2);
       if (!solv) return null;
-      return { text: '直线 y = ' + m1 + 'x' + (b1 >= 0 ? '+' + b1 : b1 < 0 ? b1 : '') + ' 与直线 y = ' + m2 + 'x' + (b2 >= 0 ? '+' + b2 : b2 < 0 ? b2 : '') + ' 的交点坐标为 ______。',
+      return { text: '直线 y = ' + (m1===1?'x':m1===-1?'-x':m1+'x') + (b1 >= 0 ? '+' + b1 : b1 < 0 ? b1 : '') + ' 与直线 y = ' + (m2===1?'x':m2===-1?'-x':m2+'x') + (b2 >= 0 ? '+' + b2 : b2 < 0 ? b2 : '') + ' 的交点坐标为 ______。',
         answer: '(' + solv.x + ', ' + solv.y + ')', solution: solv.solution, input: 'coordinate' };
     }
   });
