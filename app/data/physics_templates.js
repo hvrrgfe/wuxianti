@@ -77,8 +77,10 @@
   templates.push({
     id: 'P-DEN-001', kp: '密度', kpId: 'kp-density', type: 'blank', diff: 1,
     gen: function () {
-      var m = E.pick([27, 54, 79, 108, 200]); var V = E.pick([10, 20, 30, 40]);
-      while (m % V !== 0) V = E.pick([10, 20, 30, 40]);
+      // 选一对能整除的质量和体积
+      var entries = [[27,10],[54,30],[100,10],[80,40],[50,20],[90,30],[108,20],[210,30],[160,20]];
+      var e = E.pick(entries);
+      var m = e[0], V = e[1];
       var d = m / V;
       return { text: '某金属块质量 ' + m + ' g，体积 ' + V + ' cm³，则其密度为 ______ g/cm³。',
         answer: String(d), solution: ['ρ = m/V = ' + m + '/' + V + ' = ' + d + ' g/cm³'], input: 'num', unit: 'g/cm³' };
