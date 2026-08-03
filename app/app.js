@@ -415,6 +415,12 @@ const TPL = `
         <span :style="{color:masteryColor(x.m.mastery),fontWeight:600,fontSize:'13px'}">{{Math.round(x.m.mastery)}}%</span>
       </div>
     </div>
+    <div class="card" style="border-left:3px solid var(--accent)">
+      <div class="card-title"><span style="color:var(--accent)">智能学情建议</span><span style="font-size:11px;font-weight:400;color:var(--text3)">基于你的练习数据实时生成</span></div>
+      <div style="font-size:13px;line-height:1.9;color:var(--text2)">
+        <div v-for="(a,i) in smartAdvice(schoolSub)" :key="i" style="padding:4px 0">{{a}}</div>
+      </div>
+    </div>
     <button class="btn-ghost" style="margin:0 16px 20px;width:calc(100% - 32px)" @click="exportReport()">导出学习报告</button>
   </div>
 
@@ -617,9 +623,7 @@ const app = createApp({
       const subj=this.gen.subject;
       let kps=this.gen.kps.slice();
       if(!kps.length){
-        // 自动选：优先薄弱
-        const weak=this.weakKp.map(w=>w.key); const all=getKps(subj);
-        kps = weak.length? all.filter(k=>weak.indexOf(k)>=0) : all.slice(0,3);
+        kps = this.smartPickKps(subj);
       }
       const typeFilter = this.gen.types.choice&&this.gen.types.blank&&this.gen.types.dual ? 'all' : (this.gen.types.choice?'choice':this.gen.types.blank?'blank' : this.gen.types.dual?'dual':'all');
       const qs = genQuestions(subj, kps, this.gen.difficulty, this.gen.count, typeFilter);
@@ -627,6 +631,28 @@ const app = createApp({
       this.genAims=kps; this.genList=qs; this.genIndex=0; this.genType='smart';
       this.curAnswer=null; this.dualSel=[]; this.answered=false; this.showSolution=false;
       this.goKeep('answer');
+    },
+    // 智能知识点推荐：基于学情（掌握度低+错题多+到期复习 加权），纯本地规则
+    smartPickKps(subj, n){
+      n = n || 3;
+      const all = getKps(subj);
+      const score={};
+      all.forEach(k=>{
+        let s=0;
+        const m=this.mastery[k];
+        // 1) 掌握度越低权重越高
+        if(m) s += Math.max(0, 60 - m.mastery);
+        // 2) 错题反哺：近期错题多的知识加权
+        const mis = this.mistakes.filter(x=>x.kpId===k || x.kp===k).length;
+        s += mis * 25;
+        // 3) 到期复习：到复习时间的高权重
+        if(m && m.nextReview && m.nextReview<=todayStr()) s += 20;
+        // 4) 从未练习过的优先
+        if(!m || m.total===0) s += 40;
+        score[k]=s;
+      });
+      const ranked = all.slice().sort((a,b)=> score[b]-score[a]);
+      return ranked.slice(0, Math.min(n, all.length));
     },
     regenerate(){
       // 换一批新题
@@ -748,6 +774,29 @@ const app = createApp({
     },
     schoolDoneTrend(){ const days=[]; for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); days.push(d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()); } return days.map(k=>{ const h=this.hist[k]; return h?h.done:0; }); },
     schoolAvgCorrect(){ const list=this.masteryList(this.schoolSub).filter(x=>x.m.total>0); if(!list.length) return 0; return Math.round(list.reduce((a,x)=>a+x.m.correct/x.m.total*100,0)/list.length); },
+    // 智能学情建议：基于掌握度/错题/遗忘曲线的本地规则分析
+    smartAdvice(subj){
+      const advice=[];
+      if(!subj) subj=this.schoolSub;
+      const list=this.masteryList(subj);
+      const weak=list.filter(x=>x.m.total>0 && x.m.mastery<60).length;
+      const done=this.records.length;
+      if(done===0) advice.push('● 尚未练习，建议每天用「智能出题」做 10 道基础题起步，先建立手感。');
+      else {
+        const acc=this.schoolAvgCorrect();
+        if(acc>=85) advice.push('● 整体掌握较好（正确率'+acc+'%），可挑战更高难度，重点巩固高频压轴题。');
+        else if(acc>=60) advice.push('● 正确率'+acc+'% 处于中游，建议优先针对薄弱知识点集中突破。');
+        else advice.push('● 正确率'+acc+'% 偏低，建议降低难度、回归基础，逐个击破失分点，别盲目刷难题。');
+      }
+      if(weak===0 && done>0) advice.push('● 当前无明显的低掌握度考点，可进入更高难度或尝试其他科目。');
+      else if(weak>0) advice.push('● 有 '+weak+' 个考点掌握度偏低，建议按「知识图谱」逐个训练，每点至少刷到 80%。');
+      const misSub=this.mistakes.filter(m=>m.subject===subj).length;
+      if(misSub>0) advice.push('● 错题本有 '+misSub+' 题，建议先「重做错题」再练新题，避免重复犯错。');
+      const due=this.masteryList(subj).filter(x=>x.m.nextReview && x.m.nextReview<=todayStr()).length;
+      if(due>0) advice.push('● 有 '+due+' 个知识点到了复习期，请优先完成「间隔复习」，趁记忆模糊前强化。');
+      if(!advice.length) advice.push('● 继续加油，保持稳定练习就能稳步提升。');
+      return advice;
+    },
     // ========== 图谱 ==========
     graphKps(){ return this.masteryList(this.graphSub); },
     startTrainKp(kp){ this.gen.subject=this.graphSub; this.gen.kps=[kp]; this.startGenerate(); },
@@ -769,9 +818,23 @@ const app = createApp({
     providerOptions(){ return [ {id:'zhipu',name:'智谱GLM(免费)',host:'https://open.bigmodel.cn/api/paas/v4',model:'glm-4.7-flash'}, {id:'deepseek',name:'DeepSeek',host:'https://api.deepseek.com/v1',model:'deepseek-chat'}, {id:'qwen',name:'通义千问',host:'https://dashscope.aliyuncs.com/compatible-mode/v1',model:'qwen-plus'}, {id:'kimi',name:'Kimi(Moonshot)',host:'https://api.moonshot.cn/v1',model:'kimi-k2'}, {id:'openai',name:'OpenAI',host:'https://api.openai.com/v1',model:'gpt-4o-mini'}, {id:'custom',name:'自定义(OpenAI兼容)',host:'',model:''} ]; },
     setProvider(p){ this.aiConfig.provider=p.id; this.aiConfig.model=p.model; this.aiConfig.baseUrl=p.host; this.aiTestState=''; },
     async testAI(){ this.aiTestState='testing'; try{ await this.callLLM('只回复两个字：成功'); this.aiTestState='ok'; }catch(e){ this.aiTestState='fail: '+e.message; } },
+    // 针对 GLM-4-Flash 等轻量模型的优化指令（弥补弱模型在"复杂推理/长上下文"上的短板）
+    buildSysPrompt(){
+      let s='你是"无限题"的福建高考辅导老师。请遵循以下规则：\n';
+      s+='1. 用中文，语言简洁、直接，避免空话套话。\n';
+      s+='2. 讲题务必"分步骤"，用①②③列出关键推导，最后给出结论。\n';
+      s+='3. 计算必须自己重新验算，确认无误再给出，绝不编造数值。\n';
+      s+='4. 若题目已提供"参考解析"，直接基于它讲解，不要另起一套。\n';
+      s+='5. 回答尽量控制在 200~400 字，抓重点，符合福建高考(新课标Ⅰ卷/福建卷)风格。\n';
+      // 注入学情摘要，帮助针对性分析
+      const weak=this.weakKp;
+      if(weak.length){ s+='6. 该学生的薄弱知识点：'+weak.map(w=>w.key+'('+Math.round(w.mastery)+'%)').join('、')+'，可结合讲解提醒相关易错点。\n'; }
+      s+='\n注意：你是轻量模型，遇到不会的不要硬编，直接说"这道题超出了我的讲解范围，请用答题页内置解析或提问更细的问题"。';
+      return s;
+    },
     async callLLM(prompt, msgs){
       const cfg=this.aiConfig; const provider=cfg.provider||'zhipu';
-      const userMsgs = msgs || [ {role:'system',content:'你是针对福建高考的出题与讲解辅导AI，回答简洁准确中文。'}, {role:'user',content:prompt} ];
+      const userMsgs = msgs || [ {role:'system',content:this.buildSysPrompt()}, {role:'user',content:prompt} ];
       const body={ provider, model:cfg.model, apiKey:cfg.key, messages:userMsgs };
       try{
         const res=await fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
