@@ -785,6 +785,13 @@ const app = createApp({
     },
     sendMsg(){
       const text=this.aiInput.trim(); if(!text||this.aiBusy) return;
+      // 未配置 API Key：本地降级回复，不调 AI，不报错
+      if(!this.aiConfig.key){
+        this.aiMsgs.push({role:'user',content:text});
+        this.aiMsgs.push({role:'ai',content:'【本地助手提示】尚未配置 AI 接口，我暂时无法进行联网问答。\n\n你可以：\n① 到「我的 → AI参数设置」填入 API Key（推荐智谱GLM免费版 glm-4.7-flash，无需付费）；\n② 使用首页「智能出题」生成题目配合内置解析练习；\n③ 在答题页点「AI讲解」查看本题标准解析（完整免费离线）。'});
+        store.set('wx_ai_msgs',this.aiMsgs.slice(-30)); this.aiInput='';
+        return;
+      }
       this.aiMsgs.push({role:'user',content:text}); this.aiInput=''; store.set('wx_ai_msgs',this.aiMsgs.slice(-30)); this.aiBusy=true;
       let ctx=''; try{ const q=this.currentQ(); if(q&&this.aiTab==='chat') ctx='\n【辅助】当前题目：'+q.text+'\n答案：'+q.answer+'\n请围绕此题讲解或延伸。'; }catch(e){}
       this.callLLM(text+ctx).then(reply=>{ this.aiMsgs.push({role:'ai',content:reply}); store.set('wx_ai_msgs',this.aiMsgs.slice(-30)); this.aiBusy=false; }).catch(err=>{ this.aiMsgs.push({role:'ai',content:'（AI调用失败：'+err.message+'，请到 我的→AI设置 配置API Key）'}); this.aiBusy=false; });
@@ -793,6 +800,15 @@ const app = createApp({
       let q=null; try{ q=this.currentQ(); }catch(e){}
       if(!q){ this.go('ai'); return; }
       this.aiTab='chat';
+      // 未配置 API Key：直接展示引擎内置解析（无需 API，完全离线）
+      if(!this.aiConfig.key){
+        let msg='【本地解析】（未配置 AI，展示本题内置分步解析）\n\n题目：'+q.text+'\n\n正确答案：'+q.answer;
+        if(q.solution&&q.solution.length){ msg+='\n\n解题步骤：\n'+q.solution.map((s,i)=>(i+1)+'. '+s).join('\n'); }
+        msg+='\n\n【提示】到"我的 → AI参数设置"填入 API Key（推荐智谱GLM免费版），可获得更详细的真人式讲解。';
+        this.aiMsgs.push({role:'ai',content:msg}); store.set('wx_ai_msgs',this.aiMsgs.slice(-30));
+        this.go('ai');
+        return;
+      }
       const prompt='请详细讲解这道题：\n'+q.text+'\n正确答案：'+q.answer+(q.solution&&q.solution.length?('\n参考解析：'+q.solution.join('；')):'');
       this.aiMsgs.push({role:'user',content:'讲解题目：'+q.text.slice(0,40)+'…'}); store.set('wx_ai_msgs',this.aiMsgs.slice(-30)); this.aiBusy=true;
       this.callLLM(prompt).then(r=>{ this.aiMsgs.push({role:'ai',content:r}); store.set('wx_ai_msgs',this.aiMsgs.slice(-30)); this.aiBusy=false; }).catch(()=>{ this.aiMsgs.push({role:'ai',content:'（AI调用失败，请配置API）'}); this.aiBusy=false; });
