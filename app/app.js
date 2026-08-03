@@ -102,7 +102,7 @@ function masteryColor(m){ return m<40?'var(--danger)':m<60?'var(--accent)':m<80?
 
 // ============ Vue 根实例 ============
 const TPL = `<div class="wxt-app" id="wxtRoot">
-<div class="page">
+<div class="page" v-if="page==='home'">
   <!-- ========== 首页 ========== -->
   <div v-if="page==='home'">
     <div class="hero">
