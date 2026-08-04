@@ -572,6 +572,7 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
       <div class="grid-item" @click="go('profile')"><div class="icon-wrap" style="background:linear-gradient(135deg,#fce7f3,#fbcfe8);color:#db2777" v-html="ICONS.settings"></div><span class="label">我的</span></div>
       <div class="grid-item" @click="goKeep('kaoshi')"><div class="icon-wrap" style="background:linear-gradient(135deg,#fef2f2,#fee2e2);color:#b91c1c" v-html="ICONS.clock"></div><span class="label">考纲</span></div>
       <div class="grid-item" @click="goKeep('zhenti')"><div class="icon-wrap" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1d4ed8" v-html="ICONS.book"></div><span class="label">高考真题</span></div>
+      <div class="grid-item" @click="goKeep('daoxue')"><div class="icon-wrap" style="background:linear-gradient(135deg,#f0fdfa,#ccfbf1);color:#0d9488" v-html="ICONS.file"></div><span class="label">导学案</span></div>
       <div class="grid-item" @click="goKeep('achievements')"><div class="icon-wrap" style="background:linear-gradient(135deg,#fefce8,#fef9c3);color:#ca8a04" v-html="ICONS.trophy"></div><span class="label">成就</span></div>
       <div class="grid-item" @click="goKeep('help')"><div class="icon-wrap" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);color:#16a34a" v-html="ICONS.help"></div><span class="label">帮助</span></div>
     </div>
@@ -1154,6 +1155,74 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
     </div>
   </div>
 
+  <!-- ========== 导学案/校本 ========== -->
+  <div class="page" v-if="page==='daoxue'">
+    <div style="display:flex;align-items:center;padding:14px 16px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10">
+      <span @click="back()" style="font-size:18px;margin-right:12px;cursor:pointer">‹</span>
+      <div style="flex:1"><b style="font-size:16px">导学案</b><div class="subtitle">知识点讲义 · 讲解+例题+练习</div></div>
+      <span v-if="dxMade" style="font-size:12px;color:var(--text3);cursor:pointer" @click="printDaoxue()">🖨 打印</span>
+    </div>
+    <!-- 配置区 -->
+    <div v-if="!dxMade" style="padding:12px 16px">
+      <div class="card">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:8px">选择科目</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+          <div v-for="(s,k) in SUBJECTS" :key="k" class="mm-tab" :class="{active:dxSub===k}" style="text-align:center;padding:10px 4px" @click="dxSub=k;dxKp=''">{{s.name}}</div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:13px;color:var(--text2)">选择知识点（导学案内容核心）</div>
+          <span style="font-size:12px;color:var(--success)" v-if="dxKp">已选：{{dxKp}}</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
+          <span v-for="kp in allKpsFor(dxSub)" :key="kp" class="mm-tab" :class="{active:dxKp===kp}" style="padding:6px 12px;font-size:12px" @click="dxKp=kp">{{kp}}</span>
+        </div>
+      </div>
+      <button class="btn-primary" style="width:calc(100% - 32px);margin:0 16px 20px" :disabled="!dxKp" @click="makeDaoxue()">生成导学案</button>
+    </div>
+    <!-- 导学案内容 -->
+    <div v-else style="padding:0 16px 20px">
+      <div class="card" style="border:2px solid var(--primary);text-align:center">
+        <div style="font-size:18px;font-weight:700;color:var(--primary)">{{SUBJECTS[dxSub].name}} · {{dxKp}}</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px">导学案 · 课前导学 / 课后复习 · {{dxDate}}</div>
+      </div>
+      <div class="card">
+        <div class="card-title">📖 考点讲解</div>
+        <div style="font-size:14px;line-height:1.8;color:var(--text)">{{dxData.keypoint}}</div>
+      </div>
+      <div class="card" v-if="dxData.method">
+        <div class="card-title">💡 解题套路</div>
+        <div style="font-size:14px;line-height:1.8;color:var(--text)">{{dxData.method}}</div>
+      </div>
+      <div class="card" v-if="dxData.trap">
+        <div class="card-title">⚠️ 易错提醒</div>
+        <div style="font-size:13px;line-height:1.7;color:var(--danger)">{{dxData.trap}}</div>
+      </div>
+      <div class="card">
+        <div class="card-title">✏️ 典型例题</div>
+        <div v-for="(q,i) in dxEx" :key="'e'+i" style="padding:10px 0;border-bottom:1px solid #f3f4f6">
+          <div style="font-size:14px;line-height:1.6">例{{i+1}}. {{q.text}}</div>
+          <div style="font-size:13px;color:var(--success);margin-top:4px">答案：{{q.answer}}</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:3px" v-if="q.solution&&q.solution[0]">解析：{{q.solution[0]}}</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📝 配套练习（自测）</div>
+        <div v-for="(q,i) in dxPractice" :key="'p'+i" style="padding:10px 0;border-bottom:1px solid #f3f4f6">
+          <div style="font-size:14px;line-height:1.6">练{{i+1}}. {{q.text}}</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:3px" v-if="q.options&&q.options.length">选项：{{q.options.join('  ')}}
+          </div>
+          <div style="font-size:13px;color:var(--success);margin-top:3px">参考答案：{{q.answer}}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn-ghost" style="flex:1" @click="dxMade=false">← 重新选</button>
+        <button class="btn-primary" style="flex:1" @click="dxGoPractice()">去刷这套题</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ========== 新手引导 ========== -->
   <div class="page" v-if="page==='onboard'">
     <div style="padding:60px 30px;text-align:center">
@@ -1229,6 +1298,7 @@ const app = createApp({
       expandedBook:'0',
       expandedCh:'',
       genAims:[], genList:[], genIndex:0, genType:'', personalMode:'smart',
+      dxSub:'math', dxKp:'', dxMade:false, dxData:{}, dxEx:[], dxPractice:[], dxDate:'',
       curAnswer:null, dualSel:[], answered:false, showSolution:false,
       paper:{ subject:'math', difficulty:'medium', timing:false },
       paperQs:[], paperIndex:0, paperAnswers:{}, paperTimeLeft:0, paperTimer:null, paperStart:null, paperResults:[], paperScoreVal:0, paperFullVal:0,
@@ -1764,6 +1834,27 @@ const app = createApp({
       // 在给定list里按smartPickKps逻辑选n个(不重)
       const ranked=list.slice().sort(()=>0.5-Math.random());
       return ranked.slice(0,n);
+    },
+    // ========== 导学案 ==========
+    makeDaoxue(){
+      if(!this.dxKp) return;
+      const subj=this.dxSub;
+      const k=KNOWLEDGE && KNOWLEDGE[this.dxKp];
+      this.dxData = k ? k : { keypoint:'（该知识点暂无内置讲解，可结合例题理解。请先选有模板的知识点。）', method:'', trap:'' };
+      // 生成例题/练习（不过滤难度）
+      const ex = genQuestions(subj, [this.dxKp], 'auto', 4, 'all');
+      const pr = genQuestions(subj, [this.dxKp], 'auto', 6, 'all');
+      this.dxEx = ex.slice(0,3);
+      this.dxPractice = (pr.length?pr:ex).slice(0,5);
+      if(!this.dxEx.length&&!this.dxPractice.length){ this.help='该知识点暂无可用模板，请换一个知识点'; return; }
+      this.dxDate = todayStr();
+      this.dxMade=true;
+      window.scrollTo(0,0);
+    },
+    printDaoxue(){ window.print(); },
+    dxGoPractice(){
+      this.gen.subject=this.dxSub; this.gen.kps=[this.dxKp]; this.gen.count=5; this.gen.difficulty='auto';
+      this.startGenerate();
     },
     // ========== 专项训练(英语词汇/语文默写) ==========
     startSpec(subj, type, label){
