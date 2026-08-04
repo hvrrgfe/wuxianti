@@ -139,7 +139,9 @@ function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+(d.getMonth(
 function getTemplates(subject){
   const arr = window[SUBJECTS[subject].tpl] || [];
   const PREM = { math:'__PREMIUM', physics:'__PREMIUM_PHYSICS', chemistry:'__PREMIUM_CHEMISTRY', biology:'__PREMIUM_BIOLOGY', chinese:'__PREMIUM_CHINESE', english:'__PREMIUM_ENGLISH', politics:'__PREMIUM_POLITICS', history:'__PREMIUM_HISTORY', geography:'__PREMIUM_GEOGRAPHY' };
-  const prem = PREM[subject] && window[PREM[subject]];
+  let prem = PREM[subject] && window[PREM[subject]];
+  // 数学叠加压轴题库
+  if(subject==='math' && window.__PREMIUM_PZ && window.__PREMIUM_PZ.length){ prem = (prem||[]).concat(window.__PREMIUM_PZ); }
   if(prem && prem.length){ return arr.concat(prem); }
   return arr;
 }
