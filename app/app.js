@@ -459,6 +459,20 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
       <div class="progress" v-if="todayDoneStat.done"><div class="progress-fill" :style="{width: (Math.min(todayDoneStat.done,50)/50*100)+'%'}"></div></div>
     </div>
 
+    <!-- 智能个性化刷题 -->
+    <div class="card" style="background:linear-gradient(135deg,#eef2ff,#e0e7ff);border:1px solid #c7d2fe">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:#4338ca">🎯 为你定制 · 智能刷题</div>
+          <div style="font-size:12px;color:#6366f1;margin-top:3px">{{personalSummary().weak}}个薄弱点 · 掌握度 {{Math.round(personalSummary().avg)}}% · {{Math.round(personalSummary().due)}}个待复习</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn-primary" style="flex:1;padding:11px;background:#4f46e5;border:none;color:#fff;border-radius:10px;font-size:14px" @click="personalMode='smart';personalStart()">⚡ 智能组题</button>
+        <button class="btn-ghost" style="flex:1" @click="go('profile')">查看报告</button>
+      </div>
+    </div>
+
     <!-- 薄弱点专项 -->
     <div class="card" v-for="(w,i) in weakKp" :key="'w'+i" style="cursor:pointer" @click="startTrainKp(w.key)">
       <div style="display:flex;justify-content:space-between;align-items:center">
@@ -499,7 +513,7 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
     <div class="card" v-if="help">
       <div style="color:var(--danger);font-size:14px">{{help}}</div>
     </div>
-    <div class="empty" style="padding:20px" v-else>福建高考专属 · 覆盖数学/物理/化学/生物/英语/语文</div>
+    <div class="empty" style="padding:20px" v-else>福建高考专属 · 覆盖语数英政史地生物化</div>
   </div>
 </div>
 
@@ -563,8 +577,13 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
     <!-- 草稿板：手写涂鸦 + 文字 -->
     <div class="card" v-if="draftVisible" style="background:#fffff5;border:1px dashed #e0b45c;padding:12px">
       <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#8a6d3b;margin-bottom:6px">
-        <b>🖊 草稿板 <span style="font-weight:400;color:#b0a07a">（手指/鼠标直接涂写演算）</span></b>
-        <span style="cursor:pointer" @click="draftClear()">🗑 清空</span>
+        <b>🖊 草稿板</b>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="cursor:pointer;padding:2px 8px;border-radius:6px;border:1px solid #d9c9a0;background:#fff9ec" :style="handBrush===2?'background:#f59e0b;color:#fff':''" @click="handBrush=2">细</span>
+          <span style="cursor:pointer;padding:2px 8px;border-radius:6px;border:1px solid #d9c9a0;background:#fff9ec" :style="handBrush===6?'background:#f59e0b;color:#fff':''" @click="handBrush=6">粗</span>
+          <span style="cursor:pointer;padding:2px 8px;border-radius:6px;border:1px solid #d9c9a0;background:#fff9ec" :style="handEraser?'background:#dc2626;color:#fff':''" @click="handEraser=!handEraser">{{handEraser?'擦除中':'橡皮'}}</span>
+          <span style="cursor:pointer" @click="draftClear()">🗑 清空</span>
+        </div>
       </div>
       <canvas ref="draftCanvas" @pointerdown="handDown($event)" @pointermove="handMove($event)" @pointerup="handEnd($event)" @pointerleave="handEnd($event)"
         style="width:100%;height:180px;background:#fff;border:1px solid #eadfc0;border-radius:10px;touch-action:none;cursor:crosshair"></canvas>
@@ -594,12 +613,22 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
       </div>
       <!-- 填空题 -->
       <div v-else>
-        <input v-model="curAnswer" :placeholder="'请填写答案'+(currentQ().unit?'（'+currentQ().unit+'）':'')" style="width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;background:var(--card);color:var(--text)">
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
-          <span v-if="showMathPad()" v-for="m in mathKeys()" :key="m" @click="insertMath(m)" style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;background:var(--bg)">{{m}}</span>
-          <span v-if="showMathPad()" @click="insertMath(' ')">&nbsp␣&nbsp</span>
-          <span @click="draftVisible=true" style="padding:5px 10px;border:1px dashed var(--accent);color:var(--accent);border-radius:6px;font-size:13px;cursor:pointer">✍️ 草稿</span>
+        <input v-model="curAnswer" :placeholder="'请填写答案'+(currentQ().unit?'（'+currentQ().unit+'）':'')" inputmode="decimal" type="text" style="width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;background:var(--card);color:var(--text)">
+        <div v-if="showMathPad()" style="margin-top:8px">
+          <!-- 数字行 -->
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:6px">
+            <span v-for="n in numKeys()" :key="n" @click="insertMath(n)" style="padding:9px 0;text-align:center;border:1px solid var(--border);border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;background:var(--bg);color:var(--text)">{{n}}</span>
+          </div>
+          <!-- 符号行 -->
+          <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px">
+            <span v-for="m in mathKeys()" :key="m" @click="insertMath(m)" style="padding:7px 0;text-align:center;border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;background:var(--bg)">{{m}}</span>
+            <span @click="insertMath(' ')" title="空格" style="padding:7px 0;text-align:center;border:1px dashed var(--border);border-radius:8px;font-size:13px;cursor:pointer;background:var(--bg)">␣空格</span>
+          </div>
         </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+          <span @click="draftVisible=true" style="padding:7px 12px;border:1px dashed var(--accent);color:var(--accent);border-radius:8px;font-size:13px;cursor:pointer">✍️ 草稿</span>
+        </div>
+      </div>
       </div>
 
       <div v-if="!answered" style="display:flex;gap:10px;margin-top:14px">
@@ -745,20 +774,79 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
       <div class="mm-tab" :class="{active:misFilter.subject==='all'}" @click="misFilter.subject='all'">全部</div>
       <div class="mm-tab" v-for="s in mistakeSubs()" :key="s" :class="{active:misFilter.subject===s}" @click="misFilter.subject=s">{{SUBJECTS[s].name}}</div>
     </div>
-    <div v-if="!filteredMistakes().length" class="empty">暂无错题，去刷题检验一下吧</div>
-    <div v-else>
-      <div class="card" v-for="(m,i) in filteredMistakes()" :key="m.qid">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span class="tag tag-red">{{SUBJECTS[m.subject].name}} · {{m.kp}}</span>
-          <span style="font-size:12px;color:var(--text3);cursor:pointer" @click="delMistake(mistakes.indexOf(m))">删除</span>
+    <!-- ===== 重做模式（逐题作答） ===== -->
+    <div v-if="misMode==='redo'">
+      <div v-if="misRedoIndex < misRedoQs.length">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px">
+          <span class="tag tag-red">重做 · {{misRedoIndex+1}}/{{misRedoQs.length}}</span>
+          <span style="font-size:12px;color:var(--text3);cursor:pointer" @click="exitRedo()">退出重做</span>
         </div>
-        <div style="font-size:14px;margin-top:8px;line-height:1.6">{{m.text}}</div>
-        <div style="font-size:13px;color:var(--success);margin-top:6px">正确答案：{{m.answer}}</div>
-        <button class="btn-ghost" style="margin-top:8px;padding:6px 14px;font-size:12px" @click="askMistake(m)">AI讲解</button>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3);margin-bottom:8px">
+            <span style="color:var(--text3)">{{redoCurrent().kp}}</span><span style="color:var(--success)">✓已答{{redoDoneCount()}}</span>
+          </div>
+          <div style="font-size:15px;line-height:1.7;white-space:pre-wrap">{{redoCurrent().text}}</div>
+
+          <!-- 选择题作答 -->
+          <div v-if="redoCurrent().type==='choice'" style="margin-top:14px">
+            <div v-for="(o,i) in redoCurrent().options" :key="i" :class="redoAnswerClass(i,redoCurrent())" @click="redoPick(i)" style="padding:14px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:8px;font-size:14px;cursor:pointer">
+              <span style="display:inline-block;width:26px;height:26px;border-radius:50%;background:#f3f4f6;text-align:center;line-height:26px;margin-right:10px;font-size:13px">{{['A','B','C','D','E'][i]}}</span>{{o}}
+            </div>
+            <button class="btn-primary" style="width:100%;padding:12px;margin-top:6px" @click="redoConfirm()">提交作答</button>
+          </div>
+          <!-- 多选题作答 -->
+          <div v-else-if="redoCurrent().type==='dual'" style="margin-top:14px">
+            <div v-for="(o,i) in redoCurrent().options" :key="i" :class="misRedoSel.indexOf(i)>=0?'dual-opt selected':'dual-opt'" @click="redoDual(i)" style="padding:14px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:8px;font-size:14px;cursor:pointer">
+              <span style="display:inline-block;width:26px;height:26px;border-radius:6px;background:#f3f4f6;text-align:center;line-height:26px;margin-right:10px;font-size:13px">{{['A','B','C','D','E'][i]}}</span>{{o}}
+            </div>
+            <div style="font-size:12px;color:var(--text3)">题干有多项符合要求，请选择全部</div>
+            <button class="btn-primary" style="width:100%;padding:12px;margin-top:6px" @click="redoConfirm()">提交作答</button>
+          </div>
+          <!-- 填空题作答 -->
+          <div v-else style="margin-top:14px">
+            <input v-model="misRedoCav" placeholder="请填写答案" inputmode="decimal" style="width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px">
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
+              <span v-for="m in ['√','x²','x³','÷','×','±','π','·','-','^']" :key="m" @click="misRedoCav=(misRedoCav||'')+m" style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;background:var(--bg)">{{m}}</span>
+            </div>
+            <button class="btn-primary" style="width:100%;padding:12px;margin-top:10px" @click="redoConfirm()">提交作答</button>
+          </div>
+
+          <!-- 判分结果 -->
+          <div v-if="redoIsRight(redoCurrent())!==undefined" style="margin-top:14px">
+            <div :style="{padding:'10px',borderRadius:'8px',fontSize:'14px',background:redoIsRight(redoCurrent())?'#e6f6e6':'#fdecec',color:redoIsRight(redoCurrent())?'var(--success)':'var(--danger)'}">
+              {{redoIsRight(redoCurrent())?'✓ 回答正确，已移出错题本':'✗ 回答错误，仍保留在错题本'}}
+            </div>
+            <div v-if="!redoIsRight(redoCurrent())" style="margin-top:8px;color:var(--success)">正确答案：{{redoCurrent().answer}}</div>
+            <div v-if="redoCurrent().solution&&redoCurrent().solution.length" style="margin-top:10px;padding:10px;background:#f8fafc;border-radius:8px;font-size:13px;color:var(--text2)">
+              <b style="color:var(--text)">解析：</b>{{redoCurrent().solution[0]}}
+            </div>
+            <button class="btn-primary" style="width:100%;padding:12px;margin-top:12px" @click="redoNext()">{{misRedoIndex<misRedoQs.length-1?'下一题 →':'完成重做 ✓'}}</button>
+          </div>
+        </div>
       </div>
-      <div style="padding:0 16px 16px;display:flex;gap:8px">
-        <button class="btn-primary" style="flex:1" @click="redoMistakes()">重做错题</button>
-        <button class="btn-ghost" style="flex:1" @click="exportMistakes()">导出CSV</button>
+    </div>
+    <!-- ===== 列表模式 ===== -->
+    <div v-else>
+      <div v-if="!filteredMistakes().length" class="empty">暂无错题，去刷题检验一下吧</div>
+      <div v-else>
+        <div class="card" v-for="(m,i) in filteredMistakes()" :key="m.qid">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span class="tag tag-red">{{SUBJECTS[m.subject].name}} · {{m.kp}}</span>
+            <span style="font-size:12px;color:var(--text3);cursor:pointer" @click="delMistake(mistakes.indexOf(m))">删除</span>
+          </div>
+          <div style="font-size:14px;margin-top:8px;line-height:1.6">{{m.text}}</div>
+          <div style="font-size:13px;color:var(--success);margin-top:6px">正确答案：{{m.answer}}</div>
+          <button class="btn-ghost" style="margin-top:8px;padding:6px 14px;font-size:12px" @click="askMistake(m)">AI讲解</button>
+        </div>
+        <div style="padding:0 16px 16px;display:flex;gap:8px">
+          <button class="btn-primary" style="flex:1" @click="redoMistakes()">重做错题</button>
+          <button class="btn-ghost" style="flex:1" @click="exportMistakes()">导出CSV</button>
+        </div>
+        <div v-if="misRedoSolved.right||misRedoSolved.wrong" style="padding:0 16px 16px">
+          <div style="padding:12px;background:#f8fafc;border-radius:10px;font-size:13px;color:var(--text2)">
+            本轮重做：<b style="color:var(--success)">答对 {{misRedoSolved.right}}</b> · 答错 <b style="color:var(--danger)">{{misRedoSolved.wrong}}</b>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -990,11 +1078,11 @@ const app = createApp({
       typeIdx:-1,
       expandedBook:'0',
       expandedCh:'',
-      genAims:[], genList:[], genIndex:0, genType:'',
+      genAims:[], genList:[], genIndex:0, genType:'', personalMode:'smart',
       curAnswer:null, dualSel:[], answered:false, showSolution:false,
       paper:{ subject:'math', difficulty:'medium', timing:false },
       paperQs:[], paperIndex:0, paperAnswers:{}, paperTimeLeft:0, paperTimer:null, paperStart:null,
-      misFilter:{ subject:'all' }, misMode:'list', misRedoQs:[], misRedoIndex:0, misRedoAns:{},
+      misFilter:{ subject:'all' }, misMode:'list', misRedoQs:[], misRedoIndex:0, misRedoAns:{}, misRedoSolved:{right:0,wrong:0}, misRedoCav:null, misRedoSel:[], misRedoR:false,
       schoolSub:'math', graphSub:'math',
       aiMsgs: store.get('wx_ai_msgs', [ {role:'ai', content:'你好！我是针对福建高考的出题辅助AI。你可以问我某个知识点，或让我讲解你做错的题目。'} ]),
       aiInput:'', aiBusy:false,
@@ -1007,7 +1095,7 @@ const app = createApp({
       redoneCount: 0,
       qTimeStart: 0, qElapsed: 0, qTimer: null,    // 单题计时
       avgTime: 60,                                 // 平均用时(秒)，用于超时标记
-      draftVisible: false, draftText: '',         // 草稿板
+      draftVisible: false, draftText: '', handBrush:4, handEraser:false,   // 草稿板(手写+文字)
       mathInput: '',                               // 数学输入框
       helpOpen: '',                                // FAQ展开项
       wrongMap: store.get('wx_wrongmap', {}),      // 每题的错题类型 {qid:类型}
@@ -1304,8 +1392,38 @@ const app = createApp({
     redoMistakes(){
       const list=this.filteredMistakes(); if(!list.length) return;
       this.misRedoQs = list.map(m=>({id:m.qid, kp:m.kp, kpId:m.kpId, type:m.type, text:m.text, options:m.options, correct:m.correct, answer:m.answer, solution:m.solution}));
-      this.misRedoIndex=0; this.misRedoAns={}; this.misMode='redo'; this.gen.subject=(this.misFilter.subject!=='all'?this.misFilter.subject:list[0].subject)||'math';
+      this.misRedoIndex=0; this.misRedoAns={}; this.misRedoSolved={right:0,wrong:0}; this.misMode='redo';
+      this.misRedoCav=null; this.misRedoSel=[]; this.misRedoR=true; this.gen.subject=(this.misFilter.subject!=='all'?this.misFilter.subject:list[0].subject)||'math';
     },
+    redoCurrent(){ return this.misRedoQs[this.misRedoIndex]; },
+    // 重做判分：答对自动移出错题本
+    redoConfirm(){
+      const q=this.redoCurrent(); if(!q) return;
+      let ok=false;
+      if(q.type==='choice'){ ok = this.misRedoCav===q.correct; }
+      else if(q.type==='dual'){ const a=(this.misRedoSel||[]).slice().sort(), c=(q.correct||[]).slice().sort(); ok = a.join(',')===c.join(','); }
+      else { ok = isAnswerCorrect(this.misRedoCav, q.answer); }
+      if(ok){
+        this.misRedoSolved.right++;
+        // 移出错题本
+        const i=this.mistakes.findIndex(m=>m.qid===q.id);
+        if(i>=0){ this.mistakes.splice(i,1); this._save(); }
+      } else {
+        this.misRedoSolved.wrong++;
+      }
+      this.misRedoAns[q.id]=ok;
+      this.misRedoR=true;
+    },
+    redoIsRight(q){ return this.misRedoAns[q.id]; },
+    redoDoneCount(){ return Object.keys(this.misRedoAns).length; },
+    redoPick(i){ this.misRedoCav=i; },
+    redoDual(i){ const j=this.misRedoSel.indexOf(i); if(j>=0)this.misRedoSel.splice(j,1); else this.misRedoSel.push(i); },
+    redoAnswerClass(idx,q){ if(this.misRedoAns[q.id]===undefined) return 'opt-item'; if(idx===q.correct) return 'opt-item correct'; if(this.misRedoCav===idx) return 'opt-item wrong'; return 'opt-item'; },
+    redoNext(){
+      if(this.misRedoIndex < this.misRedoQs.length-1){ this.misRedoIndex++; this.misRedoCav=null; this.misRedoSel=[]; this.misRedoR=false; }
+      else { this.misMode='list'; this.misRedoIndex=0; this.misRedoR=false; }
+    },
+    exitRedo(){ this.misMode='list'; },
     delMistake(i){ this.mistakes.splice(i,1); this._save(); },
     delAllMistakes(){ this.mistakes=[]; this._save(); },
     exportMistakes(){
@@ -1354,6 +1472,79 @@ const app = createApp({
     },
     // ========== 图谱 ==========
     graphKps(){ return this.masteryList(this.graphSub); },
+    // ========== 智能个性化组题 ==========
+    personalSummary(){
+      let total=0, sum=0, weak=0, due=0;
+      Object.keys(this.mastery).forEach(k=>{
+        const m=this.mastery[k];
+        sum += m.mastery; total++;
+        if(m.mastery<60 && m.total>=3) weak++;
+        if(m.mastery>=60 && m.nextReview && m.nextReview<=todayStr()) due++;
+      });
+      return { avg: total?sum/total:0, weak, due };
+    },
+    // 跨全科目找出最薄弱的知识点画像，按学科智能组题
+    personalStart(){
+      const subj=this.gen.subject;
+      // 1) 该科所有知识点，按个性化分数排序(薄弱优先)
+      const all=getKps(subj);
+      // 2) 收集该科薄弱+到期+未练
+      const weakList=[], dueList=[], freshList=[];
+      all.forEach(k=>{
+        const m=this.mastery[k];
+        const mis=this.mistakes.filter(x=>x.kpId===k||x.kp===k).length;
+        if(mis>0 || (m&&m.mastery<60)) weakList.push(k);
+        else if(m && m.mastery>=60 && m.nextReview && m.nextReview<=todayStr()) dueList.push(k);
+        else freshList.push(k);
+      });
+      // 3) 按比例组题: 薄弱60% 复习25% 新知识15%
+      const count=this.gen.count||10;
+      const weakCount=Math.max(1,Math.round(count*0.6));
+      const dueCount=Math.round(count*0.25);
+      const freshCount=count-weakCount-dueCount;
+      const pool=[];
+      // 用smartPick从各类选
+      if(weakList.length) pool.push.apply(pool,this.smartPickKpsSub(subj,weakList,weakCount));
+      if(dueList.length) pool.push.apply(pool,this.smartPickKpsSub(subj,dueList,dueCount));
+      if(freshList.length) pool.push.apply(pool,this.smartPickKpsSub(subj,freshList,freshCount));
+      if(!pool.length) pool.push.apply(pool,this.smartPickKps(subj,3));
+      // 4) 难度自动: 整体弱→简单, 均衡→自适应
+      const avgMastery=this.personalSummary().avg;
+      const diff= avgMastery<40?'easy':(avgMastery>=70?'hard':'auto');
+      const typeFilter='all';
+      const uniq=[]; const seen={};
+      pool.forEach(k=>{ if(!seen[k]){seen[k]=1;uniq.push(k);} });
+      let qs=[];
+      // 从每个知识点抽1-2题,直到接近count
+      for(const kp of uniq){
+        const batch=genQuestions(subj,[kp],diff,2,typeFilter);
+        qs=qs.concat(batch);
+        if(qs.length>=count) break;
+      }
+      if(!qs.length){ qs=genQuestions(subj,this.smartPickKps(subj,3),diff,count,typeFilter); }
+      qs=qs.slice(0,count);
+      if(!qs.length){ this.help='暂无可生成的个性化题目，请先刷题积累学情'; return; }
+      // 去重
+      let guard=0;
+      while(guard<20){
+        const dupIdx=qs.map((q,i)=>this.wasRecent(q.id,0)?i:-1).find(i=>i>=0);
+        if(dupIdx===undefined) break;
+        const rep=genQuestions(subj,[qs[dupIdx].kp],diff,1,typeFilter)[0];
+        if(rep) qs[dupIdx]=rep; guard++;
+      }
+      qs.forEach(q=>this.rememberQ(q.id));
+      this.genAims=uniq.slice(0,5); this.genList=qs; this.genIndex=0; this.genType='smart';
+      this.gen.difficulty=diff;
+      this.curAnswer=null; this.dualSel=[]; this.answered=false; this.showSolution=false;
+      this.slowTip=''; this.qElapsed=0; this.startQTimer();
+      this.goKeep('answer');
+    },
+    smartPickKpsSub(subj, list, n){
+      if(!list.length) return [];
+      // 在给定list里按smartPickKps逻辑选n个(不重)
+      const ranked=list.slice().sort(()=>0.5-Math.random());
+      return ranked.slice(0,n);
+    },
     startTrainKp(kp){ this.gen.subject=this.graphSub; this.gen.kps=[kp]; this.startGenerate(); },
     // ========== 导出报告/清除 ==========
     exportReport(){
@@ -1530,7 +1721,9 @@ const app = createApp({
       if(!this._handDrawing) return;
       const c=this._getHandCtx(); if(!c) return;
       const p=this._hp(e);
-      c.lineWidth=4; c.lineCap='round'; c.lineJoin='round'; c.strokeStyle='#374151';
+      c.lineWidth=this.handEraser?10:this.handBrush;
+      c.lineCap='round'; c.lineJoin='round';
+      c.strokeStyle=this.handEraser?'#fff':'#374151';
       c.beginPath(); c.moveTo(this._handLast[0],this._handLast[1]); c.lineTo(p.x,p.y); c.stroke();
       this._handLast=[p.x,p.y];
     },
@@ -1556,6 +1749,7 @@ const app = createApp({
     showMathPad(){ const s=this.gen.subject; return (s==='math'||s==='physics'||s==='chemistry'||s==='biology'); },
     // ================= 数学输入快捷 =================
     insertMath(sym){ this.curAnswer = (this.curAnswer||'') + sym; },
+    numKeys(){ return ['1','2','3','4','5','6','7','8','9','0','.','/']; },
     mathKeys(){
       switch(this.gen.subject){
         case 'physics': return ['√','÷','×','·','^','±','µ','θ','Ω','π'];
