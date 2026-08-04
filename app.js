@@ -58,9 +58,9 @@ function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+(d.getMonth(
 // ============ 出题生成器：从模板库生成题目（含验算） ============
 function getTemplates(subject){
   const arr = window[SUBJECTS[subject].tpl] || [];
-  if(subject==='math' && window.__PREMIUM && window.__PREMIUM.length){
-    return arr.concat(window.__PREMIUM);
-  }
+  const PREM = { math:'__PREMIUM', physics:'__PREMIUM_PHYSICS', chemistry:'__PREMIUM_CHEMISTRY', biology:'__PREMIUM_BIOLOGY' };
+  const prem = PREM[subject] && window[PREM[subject]];
+  if(prem && prem.length){ return arr.concat(prem); }
   return arr;
 }
 function getKps(subject){
