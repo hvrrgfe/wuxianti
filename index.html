@@ -2,11 +2,200 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="refresh" content="0; url=./app/">
-<title>无限题 · 福建高考刷题</title>
-<script>location.replace('./app/');</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0f1220">
+<title>无限题 · 福建高考刷题 · 不是题库，是题厂</title>
+<style>
+:root{
+  --bg:#0f1220; --bg2:#161a30; --ink:#eef1fa; --muted:#8b92ad;
+  --c1:#6ee7ff; --c2:#a78bfa; --c3:#34d399; --c4:#fbbf24; --c5:#f472b6; --c6:#60a5fa;
+  --glass:rgba(255,255,255,.06); --line:rgba(255,255,255,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);overflow-x:hidden;line-height:1.6}
+.section{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:60px 24px;position:relative;overflow:hidden;text-align:center}
+.section::before{content:'';position:absolute;inset:0;pointer-events:none;background:
+  radial-gradient(600px 300px at 20% 10%, rgba(110,231,255,.10), transparent 60%),
+  radial-gradient(500px 300px at 80% 90%, rgba(167,139,250,.12), transparent 60%)}
+/* ---- 开场 ---- */
+#open{min-height:100svh}
+.logo{font-size:15px;letter-spacing:.5em;color:var(--c1);margin-bottom:18px;opacity:0;animation:rise 1s .2s forwards}
+.title{font-size:clamp(52px,14vw,96px);font-weight:900;letter-spacing:.06em;
+  background:linear-gradient(120deg,var(--c1),var(--c2),var(--c6));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  opacity:0;animation:rise 1s .5s forwards}
+.slogan{font-size:clamp(20px,5.4vw,30px);color:var(--ink);margin-top:20px;font-weight:700;
+  opacity:0;animation:rise 1s .9s forwards}
+.slogan em{font-style:normal;color:var(--c3)}
+.sub{color:var(--muted);font-size:15px;margin-top:10px;letter-spacing:.14em;opacity:0;animation:rise 1s 1.2s forwards}
+.cta{display:inline-block;margin-top:38px;padding:15px 46px;border-radius:999px;font-size:17px;font-weight:700;
+  background:linear-gradient(120deg,var(--c3),var(--c6));color:#04131c;text-decoration:none;
+  box-shadow:0 10px 40px rgba(52,211,153,.35);opacity:0;animation:rise 1s 1.5s forwards;animation-fill-mode:forwards
+}
+.scroll-hint{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);color:var(--muted);font-size:12px;letter-spacing:.3em;opacity:.7;animation:bob 2s infinite}
+@keyframes rise{from{opacity:0;transform:translateY(34px)}to{opacity:1;transform:translateY(0)}}
+@keyframes bob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-8px)}}
+/* ---- 通用标题 ---- */
+.h1{font-size:clamp(30px,8vw,48px);font-weight:900;letter-spacing:.04em}
+.h1 .grd{background:linear-gradient(120deg,var(--c2),var(--c1));-webkit-background-clip:text;background-clip:text;color:transparent}
+.tag{color:var(--muted);font-size:15px;margin-top:14px;max-width:560px}
+/* 滚动渐入 */
+.reveal{opacity:0;transform:translateY(44px);transition:opacity .8s ease,transform .8s ease}
+.reveal.on{opacity:1;transform:translateY(0)}
+/* 痛点 */
+.pain{font-size:clamp(20px,5.5vw,28px);font-weight:800;line-height:1.9;letter-spacing:.02em}
+.pain div{margin:8px 0}
+.pain .x{color:var(--c5)}
+.pain .q{color:var(--c4)}
+/* 数据 */
+.stats{display:flex;flex-wrap:wrap;justify-content:center;gap:18px;margin-top:42px;max-width:760px}
+.stat{width:160px;padding:24px 12px;border:1px solid var(--line);border-radius:20px;background:var(--glass);backdrop-filter:blur(6px)}
+.stat .n{font-size:clamp(30px,7vw,44px);font-weight:900;background:linear-gradient(120deg,var(--c1),var(--c2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat .l{color:var(--muted);font-size:13px;margin-top:6px}
+/* 功能卡片 */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-top:40px;width:100%;max-width:820px}
+.card{padding:22px 16px;border:1px solid var(--line);border-radius:18px;background:var(--glass);text-align:left}
+.card .ico{font-size:26px}
+.card h3{font-size:16px;font-weight:800;margin:10px 0 6px}
+.card p{font-size:13px;color:var(--muted)}
+/* 讲解块 */
+.kp3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:40px;width:100%;max-width:860px}
+.kpbox{border-radius:18px;padding:22px;border:1px solid var(--line)}
+.kpbox.k1{background:rgba(110,231,255,.08);border-color:rgba(110,231,255,.3)} .kpbox.k1 h3{color:var(--c1)}
+.kpbox.k2{background:rgba(52,211,153,.08);border-color:rgba(52,211,153,.3)} .kpbox.k2 h3{color:var(--c3)}
+.kpbox.k3{background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.3)} .kpbox.k3 h3{color:var(--c4)}
+.kpbox h3{font-size:18px;font-weight:800;margin-bottom:10px}
+.kpbox p{font-size:14px;color:var(--ink);opacity:.9}
+/* 路线图 */
+.road{max-width:680px;margin:40px auto 0;text-align:left}
+.road .item{display:flex;gap:16px;padding:18px 0;border-bottom:1px dashed var(--line)}
+.road .dot{flex:0 0 14px;height:14px;border-radius:50%;margin-top:6px;background:var(--c2);box-shadow:0 0 14px var(--c2)}
+.road .item.done .dot{background:var(--c3);box-shadow:0 0 14px var(--c3)}
+.road h4{font-size:16px;font-weight:800}
+.road .item.done h4{color:var(--c2)}
+.road .item.soon h4{color:var(--c4)}
+.road p{font-size:13px;color:var(--muted);margin-top:2px}
+.road .badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;margin-left:8px;vertical-align:2px}
+.badge.yes{background:rgba(52,211,153,.18);color:var(--c3)}
+.badge.no{background:rgba(251,191,36,.18);color:var(--c4)}
+/* 结尾 */
+#end{min-height:80vh}
+.big{font-size:clamp(32px,9vw,56px);font-weight:900}
+.cta.big{margin-top:40px;font-size:20px;padding:18px 56px}
+.foot{position:absolute;bottom:26px;color:var(--muted);font-size:12px;letter-spacing:.1em}
+@media (max-width:480px){.section{padding:48px 20px}.stat{width:44%}}
+</style>
 </head>
 <body>
-<p>正在进入 <a href="./app/">无限题 · 福建高考刷题</a>…</p>
+
+<!-- 屏1 开场 -->
+<section id="open" class="section">
+  <div class="logo">无限 题 ・ 自动 出题</div>
+  <div class="title">无限题</div>
+  <div class="slogan">不是题库，是<em>题厂</em> —— 每次都是全新题</div>
+  <div class="sub">福建高考 · 6科全覆盖 · 全免费离线</div>
+  <a class="cta" href="./app/">🚀 立即开始刷题</a>
+  <div class="scroll-hint">向下滚动</div>
+</section>
+
+<!-- 屏2 痛点 -->
+<section class="section">
+  <div class="pain">
+    <div class="reveal x">✗ 背过的题，换个数字就不会</div>
+    <div class="reveal x">✗ 刷完一堆题，考点还是一片模糊</div>
+    <div class="reveal q">？ 答案对了，却不知道"为什么"</div>
+  </div>
+  <div class="tag reveal" style="margin-top:32px">无限题 用「参数化出题引擎」把每个考点变成<b style="color:var(--c3)">源源不断的新题</b>，配起点·套路·易错讲解，让你真正刷透。</div>
+</section>
+
+<!-- 屏3 数据 -->
+<section class="section">
+  <div class="h1 reveal"><span class="grd">海量考点的题厂</span></div>
+  <div class="tag reveal">覆盖福建高考三大板块：语数外（新课标Ⅰ卷）＋ 物化生（福建卷）</div>
+  <div class="stats">
+    <div class="stat reveal"><div class="n">6</div><div class="l">学科全覆盖</div></div>
+    <div class="stat reveal"><div class="n">100+</div><div class="l">参数化模板</div></div>
+    <div class="stat reveal"><div class="n">3120</div><div class="l">高考英语词汇</div></div>
+    <div class="stat reveal"><div class="n">83</div><div class="l">知识点讲解</div></div>
+    <div class="stat reveal"><div class="n">59章</div><div class="l">·134节</div></div>
+    <div class="stat reveal"><div class="n">60篇</div><div class="l">语文必背篇目</div></div>
+  </div>
+</section>
+
+<!-- 屏4 核心功能1 自动出题 -->
+<section class="section">
+  <div class="h1 reveal"><span class="grd">每次都是全新题</span></div>
+  <div class="tag reveal">根据 科目 × 知识点 × 难度 × 题量 一键生成，永不重复、杜绝背答案</div>
+  <div class="grid">
+    <div class="card reveal"><div class="ico">🎯</div><h3>智能出题</h3><p>6科各考点参数化生成，薄弱点自动优先</p></div>
+    <div class="card reveal"><div class="ico">📖</div><h3>按教材出题</h3><p>科目→册→章→节，学到哪练到哪</p></div>
+    <div class="card reveal"><div class="ico">🧮</div><h3>数学键盘</h3><p>√ x² π 分式一键输入，判分精确</p></div>
+    <div class="card reveal"><div class="ico">🗓️</div><h3>重复免避</h3><p>近7天做过的题自动避开</p></div>
+    <div class="card reveal"><div class="ico">📝</div><h3>答题闭环</h3><p>选择/填空/多选 + 计时 + 草稿</p></div>
+    <div class="card reveal"><div class="ico">🤖</div><h3>AI 讲解</h3><p>未配 Key 自动离线解析，免费可用</p></div>
+  </div>
+</section>
+
+<!-- 屏5 核心功能2 知识讲解 -->
+<section class="section">
+  <div class="h1 reveal"><span class="grd">不只给答案，更让你懂</span></div>
+  <div class="kp3">
+    <div class="kpbox k1 reveal"><h3>📖 考点讲解</h3><p>每道题背后考什么、对应教材哪个知识点，一目了然。</p></div>
+    <div class="kpbox k2 reveal"><h3>💡 解题套路</h3><p>这类题的标准解法与思考路径，一题懂，一类会。</p></div>
+    <div class="kpbox k3 reveal"><h3>⚠️ 易错提醒</h3><p>常见的坑、最易失分点，帮你避免反复踩雷。</p></div>
+  </div>
+</section>
+
+<!-- 屏6 核心功能3 学情闭环 -->
+<section class="section">
+  <div class="h1 reveal"><span class="grd">刷题 → 复盘 → 提升 闭环</span></div>
+  <div class="grid">
+    <div class="card reveal"><div class="ico">❌</div><h3>错题本</h3><p>自动收录错题 + 错误类型标记，可重做/导出</p></div>
+    <div class="card reveal"><div class="ico">📊</div><h3>学情分析</h3><p>正确率、掌握度、趋势曲线、薄弱点洞察</p></div>
+    <div class="card reveal"><div class="ico">🧭</div><h3>知识图谱</h3><p>考点掌握度可视化，一眼定位弱项</p></div>
+    <div class="card reveal"><div class="ico">🏆</div><h3>成就打卡</h3><p>连续打卡、解锁徽章，坚持更有动力</p></div>
+  </div>
+</section>
+
+<!-- 屏7 roadmap 要做的功能 -->
+<section class="section">
+  <div class="h1 reveal"><span class="grd">正在路上 · 即将上线</span></div>
+  <div class="road">
+    <div class="item done reveal"><span class="dot"></span>
+      <div><h4>海量考场模板<span class="badge yes">已上线</span></h4><p>100+ 参数化模板，6科考点全覆盖</p></div></div>
+    <div class="item done reveal"><span class="dot"></span>
+      <div><h4>知识讲解<span class="badge yes">已上线</span></h4><p>考点 · 套路 · 易错，83 知识点</p></div></div>
+    <div class="item soon reveal"><span class="dot"></span>
+      <div><h4>试卷训练模式<span class="badge no">即将上线</span></h4><p>按福建卷 / 新课标Ⅰ卷结构生成整卷，全真模拟</p></div></div>
+    <div class="item soon reveal"><span class="dot"></span>
+      <div><h4>真题变式精练<span class="badge no">即将上线</span></h4><p>基于近年真题提炼变式，一题多变、拆穿套路</p></div></div>
+    <div class="item soon reveal"><span class="dot"></span>
+      <div><h4>薄弱点智能强化<span class="badge no">即将上线</span></h4><p>AI 根据错题记录自动推送针对性巩固训练</p></div></div>
+  </div>
+</section>
+
+<!-- 屏8 结尾 -->
+<section id="end" class="section">
+  <div class="big reveal">你的 <span class="grd">高考题厂</span></div>
+  <div class="slogan reveal" style="margin-top:18px">全免费 · 离线可用 · 每题都讲透</div>
+  <a class="cta big reveal" href="./app/">🎯 现在开始刷题</a>
+  <div class="foot">无限题 · 自动出题刷题 · 不是题库，是题厂</div>
+</section>
+
+<script>
+// 滚动渐入
+(function(){
+  var els=document.querySelectorAll('.reveal');
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('on'); io.unobserve(en.target); } });
+    },{threshold:.15});
+    els.forEach(function(e){io.observe(e);});
+  }else{
+    els.forEach(function(e){e.classList.add('on');});
+  }
+})();
+</script>
 </body>
 </html>
