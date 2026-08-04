@@ -130,5 +130,71 @@
     }
   });
 
+  // ========== 遗传：两对独立性状相乘(XY自由组合总数) ==========
+  // AaBb×AaBb 或 AABB 等杂交，求后代某基因型/表现型的种类或数目
+  T.push({
+    id: 'BX-GEN-004', kp: '遗传·基因型种类', kpId: 'kp-genetics', type: 'blank', diff: 4,
+    gen: function () {
+      // AaBb × AaBb: 每对杂交后代基因型3种(Aa×Aa→AA,Aa,aa)，两对独立相乘=3×3=9
+      var ops = [
+        { p: 'AaBb', q: 'AaBb', n: 9, sol: 'Aa×Aa→3种基因型；Bb×Bb→3种；两对相乘 3×3=9 种基因型' },
+        { p: 'AaBb', q: 'Aabb', n: 6, sol: 'Aa×Aa→3种；Bb×bb→2种(Bb,bb)；3×2=6 种' },
+        { p: 'AaBb', q: 'aabb', n: 4, sol: 'Aa×aa→2种；Bb×bb→2种；2×2=4 种' }
+      ];
+      var o = E.pick(ops);
+      return {
+        text: '基因型为 ' + o.p + ' 与 ' + o.q + ' 的两亲本杂交（两对基因独立遗传），后代共有 ______ 种基因型。',
+        answer: String(o.n), input: 'num',
+        solution: ['按孟德尔自由组合，两对独立性状分别计算再相乘：' + o.sol + '，所以后代基因型总数 = ' + o.n + ' 种。']
+      };
+    }
+  });
+  T.push({
+    id: 'BX-GEN-005', kp: '遗传·表现型比例', kpId: 'kp-genetics', type: 'blank', diff: 4,
+    gen: function () {
+      var o = E.pick([
+        { p: 'AaBb', q: 'AaBb', n: '9:3:3:1', sol: 'AaBb×AaBb 两对独立显性，F2 表现型比例为 9:3:3:1(双显:一显一隐:一隐一显:双隐)' },
+        { p: 'AaBb', q: 'Aabb', n: '3:3:1:1', sol: 'Aa×Aa→3:1；Bb×bb→1:1；组合(3:1)(1:1)=3:3:1:1' }
+      ]);
+      return {
+        text: '基因型为 ' + o.p + ' 与 ' + o.q + ' 杂交（两对独立遗传），后代表现型的比例是 ______（写成分数比，如 9:3:3:1）。',
+        answer: o.n, input: 'text',
+        solution: [o.sol]
+      };
+    }
+  });
+
+  // ========== 染色体：DNA复制与细胞分裂 ==========
+  T.push({
+    id: 'BX-CHR-001', kp: '染色体/DNA', kpId: 'kp-cell', type: 'blank', diff: 3,
+    gen: function () {
+      var n = E.ri(4, 16);   // 一个DNA含的碱基对数(选偶数以保证)
+      // 某细胞含 X 个DNA分子，体细胞有 2n 条染色体，每条含1个DNA
+      var ch = E.pick([8, 16, 24, 32]);  // 染色体数 (2n)
+      var dna = ch;  // 分裂间期前每条1个DNA
+      return {
+        text: '某种生物的体细胞含有 ' + ch + ' 条染色体，正常情况下其体细胞中含有 ______ 个 DNA 分子。',
+        answer: String(ch), input: 'num',
+        solution: ['体细胞中每条染色体含有 1 个 DNA 分子（分裂间期外），故 DNA 数 = 染色体数 = ' + ch + ' 个。']
+      };
+    }
+  });
+
+  // ========== 光合作用：净光合速率的计算(hour) ==========
+  T.push({
+    id: 'BX-PHOTO-002', kp: '光合作用计算', kpId: 'kp-meta', type: 'blank', diff: 4,
+    gen: function () {
+      var A = E.pick([2, 3, 4]);           // 呼吸作用速率 (mg/h)
+      var B = 10 + E.ri(0, 2);             // 光饱和时净光合 (mg/h)
+      // 总光合 = 净光合 + 呼吸
+      var gross = B + A;
+      return {
+        text: '某植物黑暗中每小时释放 ' + A + ' mg 的 CO₂（呼吸作用速率），光照下净光合作用每小时固定 ' + B + ' mg CO₂，则该植物在光照下的总光合作用速率为 ______ mg/h。',
+        answer: String(gross), input: 'num',
+        solution: ['总光合速率 = 净光合速率 + 呼吸速率 = ' + B + ' + ' + A + ' = ' + gross + ' mg/h。']
+      };
+    }
+  });
+
   root.__PREMIUM_BIOLOGY = T;
 })(typeof window !== 'undefined' ? window : globalThis);
