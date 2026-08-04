@@ -808,21 +808,37 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
   <div class="page" v-if="page==='paperResult'">
     <div class="paper-head">
       <span style="font-size:15px;font-weight:600">交卷完成</span>
-      <span>得分 {{paperScore()}}/{{paperQs.length}}</span>
+      <span>得分 {{paperScoreVal}}/{{paperFullVal||0}}分</span>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:8px">按题型得分</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:6px">
+        <div v-for="(sc,s) in paperSectionScores().score" :key="s" style="padding:8px;background:var(--bg);border-radius:8px;font-size:12px">
+          <div style="color:var(--text3)">{{s}}</div>
+          <div><b>{{sc}}</b><span style="color:var(--text3)">/{{paperSectionScores().full[s]||0}}分</span></div>
+        </div>
+      </div>
     </div>
     <div class="card">
       <div style="font-size:14px;color:var(--text2);margin-bottom:8px">逐题解析</div>
       <div v-for="(q,i) in paperResultList()" :key="i" style="padding:12px 0;border-bottom:1px solid #f3f4f6">
-        <div style="font-size:14px">{{i+1}}. {{q.text}}</div>
+        <div style="font-size:14px">{{i+1}}. {{q.text}} <span style="font-size:11px;color:var(--text3)">（{{q.section||''}}·{{q.fullScore||0}}分）</span></div>
         <div style="font-size:13px;margin-top:6px">
           <template v-if="q.type==='choice'">
-            <span :style="{color: paperAnswers[i]===q.correct?'var(--success)':'var(--danger)'}" v-if="paperAnswers[i]!==undefined">你的答案：{{['A','B','C','D'][paperAnswers[i]]}}</span>
+            <span :style="{color: paperResults[i]&&paperResults[i].ok?'var(--success)':'var(--danger)'}">{{paperResults[i]&&paperResults[i].ok?'✓':'✗'}}</span>
+            <span :style="{color: paperAnswers[i]===q.correct?'var(--success)':'var(--danger)'}" v-if="paperAnswers[i]!==undefined"> 你的答案：{{['A','B','C','D'][paperAnswers[i]]}}</span>
             <span :style="{color:'var(--success)'}"> 正确答案：{{['A','B','C','D'][q.correct]}}</span>
           </template>
+          <template v-else-if="q.type==='dual'">
+            <span :style="{color: paperResults[i]&&paperResults[i].ok?'var(--success)':'var(--danger)'}">{{paperResults[i]&&paperResults[i].ok?'✓':'✗'}}</span>
+            <span :style="{color:'var(--success)'}"> 正确答案：{{(q.correct||[]).map(x=>['A','B','C','D'][x]).join(',')}}</span>
+          </template>
           <template v-else>
-            <span>正确答案：{{q.answer}}</span>
+            <span :style="{color: paperResults[i]&&paperResults[i].ok?'var(--success)':'var(--danger)'}">{{paperResults[i]&&paperResults[i].ok?'✓':'✗'}}</span>
+            <span :style="{color:'var(--success)'}"> 正确答案：{{q.answer}}</span>
           </template>
         </div>
+        <div v-if="paperResults[i]&&!paperResults[i].ok&&q.solution&&q.solution.length" style="font-size:12px;color:var(--text2);margin-top:5px;background:var(--bg);padding:8px;border-radius:6px">解析：{{q.solution[0]}}</div>
       </div>
       <button class="btn-primary" style="margin-top:14px" @click="goKeep('paperMake')">再出一卷</button>
       <button class="btn-ghost" style="margin-top:10px;width:100%" @click="printPaper()">打印本卷</button>
@@ -1146,7 +1162,7 @@ const app = createApp({
       genAims:[], genList:[], genIndex:0, genType:'', personalMode:'smart',
       curAnswer:null, dualSel:[], answered:false, showSolution:false,
       paper:{ subject:'math', difficulty:'medium', timing:false },
-      paperQs:[], paperIndex:0, paperAnswers:{}, paperTimeLeft:0, paperTimer:null, paperStart:null,
+      paperQs:[], paperIndex:0, paperAnswers:{}, paperTimeLeft:0, paperTimer:null, paperStart:null, paperResults:[], paperScoreVal:0, paperFullVal:0,
       misFilter:{ subject:'all' }, misMode:'list', misRedoQs:[], misRedoIndex:0, misRedoAns:{}, misRedoSolved:{right:0,wrong:0}, misRedoCav:null, misRedoSel:[], misRedoR:false,
       schoolSub:'math', graphSub:'math',
       aiMsgs: store.get('wx_ai_msgs', [ {role:'ai', content:'你好！我是针对福建高考的出题辅助AI。你可以问我某个知识点，或让我讲解你做错的题目。'} ]),
@@ -1463,8 +1479,27 @@ const app = createApp({
       let sc=0; this.paperQs.forEach((q,i)=>{ if(q.type==='choice'){ if(this.paperAnswers[i]===q.correct)sc++; } else if(q.type==='dual'){ if((this.paperAnswers[i]||[]).slice().sort().join(',')===(q.correct||[]).slice().sort().join(','))sc++; } else { if(isAnswerCorrect(this.paperAnswers[i],q.answer))sc++; } });
       return sc;
     },
-    submitPaper(){ clearInterval(this.paperTimer); this.paperTimer=null; this.paperCount=(this.paperCount||0)+1; this.unlockAchieve('paper1'); store.set('wx_paperCount',this.paperCount); this.goKeep('paperResult'); },
+    submitPaper(){
+      clearInterval(this.paperTimer); this.paperTimer=null;
+      // 逐题判分
+      this.paperResults = this.paperQs.map((q,i)=>{
+        let ok=false;
+        if(q.type==='choice'){ ok = String(this.paperAnswers[i])===String(q.correct); }
+        else if(q.type==='dual'){ const a=(this.paperAnswers[i]||[]).slice().sort().join(','), c=(q.correct||[]).slice().sort().join(','); ok = a===c; }
+        else { ok = isAnswerCorrect(this.paperAnswers[i], q.answer); }
+        return { ok, score: ok?(q.fullScore||0):0, full:(q.fullScore||0), section:q.section||'', secNo:q.secNo };
+      });
+      this.paperScoreVal = this.paperResults.reduce((s,r)=>s+r.score,0);
+      this.paperFullVal = this.paperResults.reduce((s,r)=>s+r.full,0);
+      // 答错进错题本
+      this.paperQs.forEach((q,i)=>{ if(!this.paperResults[i].ok){ const ex=this.mistakes.find(m=>m.qid===q.id); if(!ex){ this.mistakes.unshift({ qid:q.id, subject:this.paper.subject, kp:q.kp, kpId:q.kpId||q.kp, text:q.text, options:q.options||[], correct:q.correct, answer:q.answer, solution:q.solution||[], type:q.type, errorType:'', at:Date.now() }); } } });
+      this._save();
+      this.paperCount=(this.paperCount||0)+1; this.unlockAchieve('paper1'); store.set('wx_paperCount',this.paperCount);
+      this.goKeep('paperResult');
+    },
     paperResultList(){ return this.paperQs; },
+    // 按题型统计得分
+    paperSectionScores(){ const m={}, full={}, correct={}; this.paperResults.forEach(r=>{ const s=r.section||''; m[s]=(m[s]||0)+r.score; full[s]=(full[s]||0)+r.full; if(r.ok)correct[s]=(correct[s]||0)+1; }); return { score:m, full }; },
     printPaper(){ window.print(); },
     // ========== 错题本 ==========
     mistakeSubs(){ const s={}; this.mistakes.forEach(m=>s[m.subject]=1); return Object.keys(s); },
