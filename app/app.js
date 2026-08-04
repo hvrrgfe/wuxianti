@@ -158,6 +158,10 @@ function getTemplates(subject){
   if(subject==='chemistry' && window.__PREMIUM_CHEMISTRY_HS && window.__PREMIUM_CHEMISTRY_HS.length){ prem = (prem||[]).concat(window.__PREMIUM_CHEMISTRY_HS); }
   // 生物叠加高中核心模板
   if(subject==='biology' && window.__PREMIUM_BIOLOGY_HS && window.__PREMIUM_BIOLOGY_HS.length){ prem = (prem||[]).concat(window.__PREMIUM_BIOLOGY_HS); }
+  // 各科扩充模板
+  const EXT = { chinese:'__PREMIUM_CHINESE_EXTRA', geography:'__PREMIUM_GEOGRAPHY_EXTRA', history:'__PREMIUM_HISTORY_EXTRA', politics:'__PREMIUM_POLITICS_EXTRA', english:'__PREMIUM_ENGLISH_EXTRA', chemistry:'__PREMIUM_CHEMISTRY_EXTRA', biology:'__PREMIUM_BIOLOGY_EXTRA', math:'__PREMIUM_MATH_EXTRA', physics:'__PREMIUM_PHYSICS_EXTRA' };
+  const ext = EXT[subject] && window[EXT[subject]];
+  if(ext && ext.length){ prem = (prem||[]).concat(ext); }
   if(prem && prem.length){ return arr.concat(prem); }
   return arr;
 }
