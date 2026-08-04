@@ -447,6 +447,7 @@ function genQuestions(subject, kps, difficulty, count, typeFilter){
       keypoint:(KNOWLEDGE&&KNOWLEDGE[t.kp]?KNOWLEDGE[t.kp].keypoint:'')||q.keypoint||'',
       method:(KNOWLEDGE&&KNOWLEDGE[t.kp]?KNOWLEDGE[t.kp].method:'')||q.method||'',
       trap:(KNOWLEDGE&&KNOWLEDGE[t.kp]?KNOWLEDGE[t.kp].trap:'')||q.trap||'',
+      fp: t.id+':'+String(q.text).trim(),   // 去重指纹(同模板+同参数→同指纹)
       id: t.id+'#'+(_idSeq++)
     });
   }
@@ -1438,14 +1439,14 @@ const app = createApp({
       let qs = genQuestions(subj, this.gen.kps, type.diff||this.gen.difficulty, this.gen.count, typeFilter);
       if(!qs.length){ this.help='该题型暂无更多可生成题目，请稍后再试'; return; }
       let guard=0;
-      while(guard<30){
-        const dupIdx=qs.map((q,i)=>this.wasRecent(q.id,0)?i:-1).find(i=>i>=0);
+      while(guard<60){
+        const dupIdx=qs.map((q,i)=>this.wasRecent(q.fp||q.id,7)?i:-1).find(i=>i>=0);
         if(dupIdx===undefined) break;
         const rep=genQuestions(subj, [qs[dupIdx].kp], type.diff, 1, typeFilter)[0];
         if(rep){ qs[dupIdx]=rep; }
         guard++;
       }
-      qs.forEach(q=>this.rememberQ(q.id));
+      qs.forEach(q=>this.rememberQ(q.fp||q.id));
       this.genAims=this.gen.kps.slice(); this.genList=qs; this.genIndex=0; this.genType='smart';
       this.curAnswer=null; this.dualSel=[]; this.answered=false; this.showSolution=false;
       this.slowTip=''; this.qElapsed=0; this.startQTimer();
@@ -1463,8 +1464,8 @@ const app = createApp({
       // 重复避免：近N天内出过同模板+同参数哈希的题，重新生成替身（最多重试30次）
       if(qs.length){
         let guard=0;
-        while(guard<30){
-          const dupIdx=qs.map((q,i)=>this.wasRecent(q.id,0)?i:-1).find(i=>i>=0);
+        while(guard<60){
+          const dupIdx=qs.map((q,i)=>this.wasRecent(q.fp||q.id,7)?i:-1).find(i=>i>=0);
           if(dupIdx===undefined) break;
           const rep=genQuestions(subj, [qs[dupIdx].kp], this.gen.difficulty, 1, typeFilter)[0];
           if(rep){ qs[dupIdx]=rep; }
@@ -1473,7 +1474,7 @@ const app = createApp({
       }
       if(!qs.length){ this.help='该知识点暂无更多可生成题目，请尝试其他知识点或难度'; return; }
       // 记录本批题目，供下次去重
-      qs.forEach(q=>this.rememberQ(q.id));
+      qs.forEach(q=>this.rememberQ(q.fp||q.id));
       this.genAims=kps; this.genList=qs; this.genIndex=0; this.genType='smart';
       this.genAims=kps; this.genList=qs; this.genIndex=0; this.genType='smart';
       this.curAnswer=null; this.dualSel=[]; this.answered=false; this.showSolution=false;
@@ -1817,12 +1818,12 @@ const app = createApp({
       // 去重
       let guard=0;
       while(guard<20){
-        const dupIdx=qs.map((q,i)=>this.wasRecent(q.id,0)?i:-1).find(i=>i>=0);
+        const dupIdx=qs.map((q,i)=>this.wasRecent(q.fp||q.id,7)?i:-1).find(i=>i>=0);
         if(dupIdx===undefined) break;
         const rep=genQuestions(subj,[qs[dupIdx].kp],diff,1,typeFilter)[0];
         if(rep) qs[dupIdx]=rep; guard++;
       }
-      qs.forEach(q=>this.rememberQ(q.id));
+      qs.forEach(q=>this.rememberQ(q.fp||q.id));
       this.genAims=uniq.slice(0,5); this.genList=qs; this.genIndex=0; this.genType='smart';
       this.gen.difficulty=diff;
       this.curAnswer=null; this.dualSel=[]; this.answered=false; this.showSolution=false;
