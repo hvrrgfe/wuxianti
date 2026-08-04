@@ -146,6 +146,8 @@ function getTemplates(subject){
   const PZP = { physics:'__PREMIUM_PZ_PHYSICS', chemistry:'__PREMIUM_PZ_CHEMISTRY', biology:'__PREMIUM_PZ_BIOLOGY', politics:'__PREMIUM_PZ_POLITICS', history:'__PREMIUM_PZ_HISTORY', geography:'__PREMIUM_PZ_GEOGRAPHY' };
   const pzp = PZP[subject] && window[PZP[subject]];
   if(pzp && pzp.length){ prem = (prem||[]).concat(pzp); }
+  // 物理叠加高中核心模板
+  if(subject==='physics' && window.__PREMIUM_PHYSICS_HS && window.__PREMIUM_PHYSICS_HS.length){ prem = (prem||[]).concat(window.__PREMIUM_PHYSICS_HS); }
   if(prem && prem.length){ return arr.concat(prem); }
   return arr;
 }
