@@ -571,6 +571,7 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
       <div class="grid-item" @click="go('ai')"><div class="icon-wrap" style="background:linear-gradient(135deg,#ecfeff,#cffafe);color:#0891b2" v-html="ICONS.zap"></div><span class="label">AI助手</span></div>
       <div class="grid-item" @click="go('profile')"><div class="icon-wrap" style="background:linear-gradient(135deg,#fce7f3,#fbcfe8);color:#db2777" v-html="ICONS.settings"></div><span class="label">我的</span></div>
       <div class="grid-item" @click="goKeep('kaoshi')"><div class="icon-wrap" style="background:linear-gradient(135deg,#fef2f2,#fee2e2);color:#b91c1c" v-html="ICONS.clock"></div><span class="label">考纲</span></div>
+      <div class="grid-item" @click="goKeep('zhenti')"><div class="icon-wrap" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1d4ed8" v-html="ICONS.book"></div><span class="label">高考真题</span></div>
       <div class="grid-item" @click="goKeep('achievements')"><div class="icon-wrap" style="background:linear-gradient(135deg,#fefce8,#fef9c3);color:#ca8a04" v-html="ICONS.trophy"></div><span class="label">成就</span></div>
       <div class="grid-item" @click="goKeep('help')"><div class="icon-wrap" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);color:#16a34a" v-html="ICONS.help"></div><span class="label">帮助</span></div>
     </div>
@@ -1102,6 +1103,57 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
     </div>
   </div>
 
+  <!-- ========== 高考真题 ========== -->
+  <div class="page" v-if="page==='zhenti'">
+    <div style="display:flex;align-items:center;padding:14px 16px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10">
+      <span @click="back()" style="font-size:18px;margin-right:12px;cursor:pointer">‹</span>
+      <div style="flex:1"><b style="font-size:16px">高考真题</b><div class="subtitle">历年高考原题 · 带答案与解析</div></div>
+      <span style="font-size:13px;color:var(--text3)">{{SUBJECTS[zhentiSub]?SUBJECTS[zhentiSub].name:'选科'}}</span>
+    </div>
+    <div style="padding:10px 16px;display:flex;gap:8px;flex-wrap:wrap">
+      <div v-for="(s,k) in SUBJECTS" :key="k" class="mm-tab" :class="{active:zhentiSub===k}" :style="zhentiAvail(k)?{}:{opacity:.35}" @click="zhentiSub=k;zhentiIdx=0;zhentiAns={};zhentiChecked=false">{{s.name}}</div>
+    </div>
+    <div v-if="!zhentiAvail(zhentiSub)" class="empty">该科暂无精选真题数据</div>
+    <div v-else>
+      <div v-if="zhentiIdx===0" style="padding:4px 16px 20px">
+        <div class="card" v-for="(z,i) in zhentiList(zhentiSub)" :key="i" style="cursor:pointer" @click="zhentiIdx=i+1;zhentiAns={};zhentiChecked=false">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span class="tag tag-blue">{{z.year}} {{z.cat}}</span>
+            <span style="font-size:12px;color:var(--text3)">第{{i+1}}题 →</span>
+          </div>
+          <div style="font-size:14px;margin-top:8px;line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">{{z.question}}</div>
+        </div>
+      </div>
+      <div v-else style="padding:0 16px 20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">
+          <span class="tag tag-blue">{{zhentiCur().year}} · {{zhentiCur().cat}}</span>
+          <span style="font-size:12px;color:var(--text3);cursor:pointer" @click="zhentiIdx=0">← 返回列表</span>
+        </div>
+        <div class="card">
+          <div style="font-size:15px;line-height:1.7;white-space:pre-wrap">{{zhentiCur().question}}</div>
+          <div style="margin-top:14px">
+            <div class="opt-item" v-for="(o,i) in zhentiChoices(zhentiCur())" :key="i" :class="zhentiOptClass(i,zhentiCur())" @click="zhentiAns=i">
+              <span style="display:inline-block;width:26px;height:26px;border-radius:50%;background:#f3f4f6;text-align:center;line-height:26px;margin-right:10px;font-size:13px">{{['A','B','C','D','E'][i]}}</span>{{o}}
+            </div>
+            <button class="btn-primary" style="width:100%;padding:12px;margin-top:6px" @click="zhentiCheck(true)">作答并判分</button>
+            <button class="btn-ghost" style="width:100%;padding:10px;margin-top:6px" @click="zhentiCheck(false)">直接看解析</button>
+          </div>
+        </div>
+        <div class="card" v-if="zhentiChecked" style="border:1px solid var(--border)">
+          <div :style="{fontSize:'14px',fontWeight:'600',color:!zhentiAns?'var(--accent)':(zhentiCur().answer==String(zhentiAns)||zhentiCur().answer[0]==['A','B','C','D'][zhentiAns]?'var(--success)':'var(--danger)')}">
+            {{!zhentiAns?'－ 未作答':((zhentiCur().answer==String(zhentiAns)||zhentiCur().answer[0]==['A','B','C','D'][zhentiAns])?'✓ 回答正确':'✗ 回答错误')}}
+          </div>
+          <div style="font-size:13px;margin-top:6px;color:var(--success)">正确答案：{{Array.isArray(zhentiCur().answer)?zhentiCur().answer.join('、'):zhentiCur().answer}}</div>
+          <div style="font-size:13px;color:var(--text2);margin-top:8px;line-height:1.7">解析：{{zhentiCur().analysis || '暂无解析'}}</div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:12px">
+          <button class="btn-ghost" style="flex:1" :disabled="zhentiIdx<=1" @click="zhentiIdx>1&&zhentiIdx--;zhentiAns={};zhentiChecked=false">上一题</button>
+          <button class="btn-primary" style="flex:2" @click="zhentiNext()">下一题 →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ========== 新手引导 ========== -->
   <div class="page" v-if="page==='onboard'">
     <div style="padding:60px 30px;text-align:center">
@@ -1180,6 +1232,7 @@ const app = createApp({
       curAnswer:null, dualSel:[], answered:false, showSolution:false,
       paper:{ subject:'math', difficulty:'medium', timing:false },
       paperQs:[], paperIndex:0, paperAnswers:{}, paperTimeLeft:0, paperTimer:null, paperStart:null, paperResults:[], paperScoreVal:0, paperFullVal:0,
+      zhentiSub:'physics', zhentiIdx:0, zhentiAns:'', zhentiChecked:false,
       misFilter:{ subject:'all' }, misMode:'list', misRedoQs:[], misRedoIndex:0, misRedoAns:{}, misRedoSolved:{right:0,wrong:0}, misRedoCav:null, misRedoSel:[], misRedoR:false,
       schoolSub:'math', graphSub:'math',
       aiMsgs: store.get('wx_ai_msgs', [ {role:'ai', content:'你好！我是针对福建高考的出题辅助AI。你可以问我某个知识点，或让我讲解你做错的题目。'} ]),
@@ -1529,6 +1582,29 @@ const app = createApp({
     paperResultList(){ return this.paperQs; },
     // 按题型统计得分
     paperSectionScores(){ const m={}, full={}, correct={}; this.paperResults.forEach(r=>{ const s=r.section||''; m[s]=(m[s]||0)+r.score; full[s]=(full[s]||0)+r.full; if(r.ok)correct[s]=(correct[s]||0)+1; }); return { score:m, full }; },
+    // ========== 高考真题 ==========
+    zhentiAvail(k){ const Z=(typeof window!=='undefined'&&window.__ZHENTI)||{}; return !!(Z[k]&&Z[k].length); },
+    zhentiList(k){ const Z=(typeof window!=='undefined'&&window.__ZHENTI)||{}; return Z[k]||[]; },
+    zhentiCur(){ const l=this.zhentiList(this.zhentiSub); return l[this.zhentiIdx-1]||l[0]||{}; },
+    zhentiChoices(z){
+      const s=String(z.question||'');
+      const m=s.match(/([A-D])(?:[\.、．]|\s)\s*([^A-D]{1,60}?)(?=(?:[A-D](?:[\.、．]|\s))|$)/g)||[];
+      const ch=[];
+      m.forEach(function(x){ const mm=x.match(/^[A-D](?:[\.、．]|\s)\s*(.+)/); if(mm)ch.push(mm[1].trim()); });
+      return ch.length?ch.slice(0,4):['选项A','选项B','选项C','选项D'];
+    },
+    zhentiOptClass(i,z){
+      if(!this.zhentiChecked) return 'opt-item';
+      const ans=Array.isArray(z.answer)?z.answer.join(''):String(z.answer);
+      const letter=['A','B','C','D'][i];
+      const isAns=ans.indexOf(letter)>=0;
+      const isPick=String(this.zhentiAns)===String(i);
+      if(isAns) return 'opt-item correct';
+      if(isPick&&!isAns) return 'opt-item wrong';
+      return 'opt-item';
+    },
+    zhentiCheck(withJudge){ this.zhentiChecked=true; if(withJudge===false) this.zhentiAns=''; },
+    zhentiNext(){ const l=this.zhentiList(this.zhentiSub); if(this.zhentiIdx<l.length){ this.zhentiIdx++; } else { this.zhentiIdx=0; } this.zhentiAns=''; this.zhentiChecked=false; },
     printPaper(){ window.print(); },
     // ========== 错题本 ==========
     mistakeSubs(){ const s={}; this.mistakes.forEach(m=>s[m.subject]=1); return Object.keys(s); },
