@@ -538,6 +538,23 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
       </div>
     </div>
 
+    <!-- 专项训练：英语词汇 + 语文默写 -->
+    <div class="card" style="border:1px solid var(--border)">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:8px">📌 专项训练 <span style="font-size:11px;color:var(--text3)">针对高考固定考点</span></div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+        <div class="spec-item" @click="startSpec('english','english','词汇')" style="padding:12px;border-radius:10px;cursor:pointer;background:linear-gradient(135deg,#fefce8,#fef9c3);border:1px solid #fde68a;text-align:center">
+          <div style="font-size:22px">🔤</div>
+          <div style="font-size:14px;font-weight:700;color:#a16207">英语词汇</div>
+          <div style="font-size:11px;color:#ca8a04;margin-top:2px">FRE高考 3120词 · 按词频</div>
+        </div>
+        <div class="spec-item" @click="startSpec('chinese','chinese','默写')" style="padding:12px;border-radius:10px;cursor:pointer;background:linear-gradient(135deg,#fce7f3,#fbcfe8);border:1px solid #f9a8d4;text-align:center">
+          <div style="font-size:22px">📜</div>
+          <div style="font-size:14px;font-weight:700;color:#be185d">语文默写</div>
+          <div style="font-size:11px;color:#db2777;margin-top:2px">新课标必背 60篇</div>
+        </div>
+      </div>
+    </div>
+
     <!-- 快捷入口 -->
     <div class="grid">
       <div class="grid-item" @click="goKeep('generate')"><div class="icon-wrap" v-html="ICONS.dice"></div><span class="label">智能出题</span></div>
@@ -1589,6 +1606,21 @@ const app = createApp({
       // 在给定list里按smartPickKps逻辑选n个(不重)
       const ranked=list.slice().sort(()=>0.5-Math.random());
       return ranked.slice(0,n);
+    },
+    // ========== 专项训练(英语词汇/语文默写) ==========
+    startSpec(subj, type, label){
+      this.gen.subject=subj;
+      // 英语词汇: 用所有词汇/辨析相关kp; 语文默写: 用名句kp
+      const kpMap = {
+        'english': ['词汇辨析','词形变化'],
+        'chinese': ['名句默写','名句理解性默写']
+      };
+      const kps=(kpMap[type]||[]).filter(k=>getKps(subj).indexOf(k)>=0);
+      this.gen.kps = kps.length?kps:this.smartPickKps(subj,3);
+      this.gen.count=10;
+      this.gen.grade='all';
+      this.gen.difficulty='auto';
+      this.startGenerate();
     },
     // ========== 高考冲刺 ==========
     gaokaoDays(){ return gaokaoDays(); },
