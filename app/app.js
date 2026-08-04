@@ -8,7 +8,10 @@ const SUBJECTS = {
   chemistry: { name:'化学', short:'化', color:'#10B981', tpl:'__ChemistryTemplates' },
   biology: { name:'生物', short:'生', color:'#22C55E', tpl:'__BiologyTemplates' },
   english: { name:'英语', short:'英', color:'#F59E0B', tpl:'__EnglishTemplates' },
-  chinese: { name:'语文', short:'语', color:'#EF4444', tpl:'__ChineseTemplates' }
+  chinese: { name:'语文', short:'语', color:'#EF4444', tpl:'__ChineseTemplates' },
+  politics: { name:'政治', short:'政', color:'#D946EF', tpl:'__PoliticsTemplates' },
+  history: { name:'历史', short:'史', color:'#92400E', tpl:'__HistoryTemplates' },
+  geography: { name:'地理', short:'地', color:'#059669', tpl:'__GeographyTemplates' }
 };
 // 各科试卷结构（福建高考/全国卷，用于模拟卷生成）
 const PAPER_STRUCT = {
@@ -17,7 +20,10 @@ const PAPER_STRUCT = {
   chemistry: { name:'化学·福建卷', full:100, time:75, parts:[{t:'单选',n:10,each:4},{t:'综合',n:4,each:15}] },
   biology: { name:'生物·福建卷', full:100, time:75, parts:[{t:'单选',n:20,each:2},{t:'综合',n:4,each:10}] },
   english: { name:'英语·新课标Ⅰ卷', full:150, time:120, parts:[{t:'语言运用',n:10,each:1.5}] },
-  chinese: { name:'语文·新课标Ⅰ卷', full:150, time:150, parts:[{t:'名句',n:3,each:2}] }
+  chinese: { name:'语文·新课标Ⅰ卷', full:150, time:150, parts:[{t:'名句',n:3,each:2}] },
+  politics: { name:'政治·新课标卷', full:100, time:75, parts:[{t:'选择',n:12,each:3},{t:'材料分析',n:3,each:12}] },
+  history: { name:'历史·新课标卷', full:100, time:75, parts:[{t:'选择',n:12,each:3},{t:'材料解析',n:3,each:12}] },
+  geography: { name:'地理·新课标卷', full:100, time:75, parts:[{t:'选择',n:11,each:3},{t:'综合题',n:3,each:12}] }
 };
 
 // ============ 在线字母icon（Feather式SVG） ============
@@ -50,7 +56,13 @@ const store = {
 function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
 
 // ============ 出题生成器：从模板库生成题目（含验算） ============
-function getTemplates(subject){ const arr = window[SUBJECTS[subject].tpl]; return arr || []; }
+function getTemplates(subject){
+  const arr = window[SUBJECTS[subject].tpl] || [];
+  const PREM = { math:'__PREMIUM', physics:'__PREMIUM_PHYSICS', chemistry:'__PREMIUM_CHEMISTRY', biology:'__PREMIUM_BIOLOGY' };
+  const prem = PREM[subject] && window[PREM[subject]];
+  if(prem && prem.length){ return arr.concat(prem); }
+  return arr;
+}
 function getKps(subject){
   const seen={}, arr=getTemplates(subject), out=[];
   arr.forEach(t=>{ if(!seen[t.kp]){ seen[t.kp]=1; out.push(t.kp); } });
