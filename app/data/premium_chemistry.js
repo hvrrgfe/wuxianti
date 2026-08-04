@@ -146,5 +146,76 @@
     }
   });
 
+  // ========== 氧化还原：陌生方程式产物判断 ==========
+  // 常见氧化剂/还原剂的产物判断（一化强调"升降守恒"）
+  T.push({
+    id: 'CX-RE-002', kp: '氧化还原·产物', kpId: 'kp-redox', type: 'choice', diff: 4,
+    gen: function () {
+      return {
+        text: 'Cl₂ 与浓 NaOH 溶液在加热条件下反应，Cl₂ 既作氧化剂又作还原剂，其产物中包含（ ）',
+        options: ['NaCl 和 NaClO₃', '只有 NaClO', 'NaCl 和 O₂', 'Cl₂ 不反应'],
+        answer: 'NaCl 和 NaClO₃', correct: 0,
+        solution: ['氯气与浓热 NaOH 反应生成 NaCl 和 NaClO₃（3Cl₂+6NaOH→5NaCl+NaClO₃+3H₂O），Cl₂ 歧化：一部分得电子变 Cl⁻，一部分失电子变 ClO₃⁻，满足升降守恒。']
+      };
+    }
+  });
+  T.push({
+    id: 'CX-RE-003', kp: '氧化还原·转移', kpId: 'kp-redox', type: 'blank', diff: 4,
+    gen: function () {
+      // 反应 2Mn: 求 4 mol KMnO₄ 作氧化剂时转移的电子数(每 mol Mn+7→+2 得5e)
+      var n = E.pick([2, 4, 8]);
+      var e = n * 5; // Mn+7→Mn+2 得5电子
+      return {
+        text: '用酸性 KMnO₄ 氧化草酸(H₂C₂O₄)时，KMnO₄ 中 Mn 从+7 降为+2。若恰好消耗 ' + n + ' mol KMnO₄，则此过程转移电子的物质的量为 ______ mol。',
+        answer: String(e), input: 'num', unit: 'mol',
+        solution: ['每 mol Mn(+7→+2) 得到 5 mol 电子（ΔMn=+7到+2，得5e）。' + n + ' mol × 5 = ' + e + ' mol 电子。']
+      };
+    }
+  });
+
+  // ========== 实验：气体制备与检验 ==========
+  T.push({
+    id: 'CX-EXP-001', kp: '实验·气体制备', kpId: 'kp-labo', type: 'choice', diff: 3,
+    gen: function () {
+      return {
+        text: '实验室用 MnO₂ 与浓盐酸共热制备 Cl₂，正确的说法是（ ）',
+        options: ['该反应需加热，MnO₂ 作氧化剂', '反应不需加热', 'Cl₂ 用排水法收集', '产物中一定有 HClO'],
+        answer: '该反应需加热，MnO₂ 作氧化剂', correct: 0,
+        solution: ['MnO₂+4HCl(浓)→MnCl₂+Cl₂↑+2H₂O，需加热；MnO₂ 中 Mn+4→+2 得电子，作氧化剂；Cl₂ 溶于水不能用排水法，用向上排空气或饱和食盐水。']
+      };
+    }
+  });
+  T.push({
+    id: 'CX-EXP-002', kp: '实验·离子检验', kpId: 'kp-labo', type: 'choice', diff: 3,
+    gen: function () {
+      return {
+        text: '检验某溶液中是否含 Fe³⁺，应选用的试剂是（ ）',
+        options: ['KSCN 溶液', '酚酞试剂', 'BaCl₂ 溶液', 'AgNO₃ 溶液'],
+        answer: 'KSCN 溶液', correct: 0,
+        solution: ['Fe³⁺ 遇 KSCN 溶液变红色，这是 Fe³⁺ 的特征检验方法。酚酞测酸碱性、BaCl₂ 检验 SO₄²⁻、AgNO₃ 检验 Cl⁻，均不适用于 Fe³⁺。']
+      };
+    }
+  });
+
+  // ========== 混合物：平均摩尔质量/相对密度 ==========
+  T.push({
+    id: 'CX-MIX-001', kp: '混合气体计算', kpId: 'kp-molm', type: 'blank', diff: 3,
+    gen: function () {
+      // 两种气体体积比已知，求平均相对分子质量
+      var ops = [
+        { g1: 'CO₂', M1: 44, g2: 'N₂', M2: 28, r: 1, avg: (44 + 28 * 1) / 2 },
+        { g1: 'H₂', M1: 2, g2: 'O₂', M2: 32, r: 1, avg: (2 + 32) / 2 },
+        { g1: 'CO', M1: 28, g2: 'O₂', M2: 32, r: 1, avg: 30 }
+      ];
+      var o = E.pick(ops);
+      var avg = o.avg;
+      return {
+        text: '等体积（同温同压）混合的 ' + o.g1 + ' 与 ' + o.g2 + ' 气体，其平均摩尔质量为 ______ g/mol。',
+        answer: String(avg), input: 'num', unit: 'g/mol',
+        solution: ['平均摩尔质量 M = (M₁×n₁ + M₂×n₂)/(n₁+n₂)，等体积即等物质的量，M = (' + o.M1 + ' + ' + o.M2 + ')/2 = ' + avg + ' g/mol。']
+      };
+    }
+  });
+
   root.__PREMIUM_CHEMISTRY = T;
 })(typeof window !== 'undefined' ? window : globalThis);
