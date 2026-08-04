@@ -142,8 +142,8 @@ function getTemplates(subject){
   let prem = PREM[subject] && window[PREM[subject]];
   // 数学叠加压轴题库
   if(subject==='math' && window.__PREMIUM_PZ && window.__PREMIUM_PZ.length){ prem = (prem||[]).concat(window.__PREMIUM_PZ); }
-  // 理化生叠加压轴题库
-  const PZP = { physics:'__PREMIUM_PZ_PHYSICS', chemistry:'__PREMIUM_PZ_CHEMISTRY', biology:'__PREMIUM_PZ_BIOLOGY' };
+  // 理化生+政史地叠加压轴题库
+  const PZP = { physics:'__PREMIUM_PZ_PHYSICS', chemistry:'__PREMIUM_PZ_CHEMISTRY', biology:'__PREMIUM_PZ_BIOLOGY', politics:'__PREMIUM_PZ_POLITICS', history:'__PREMIUM_PZ_HISTORY', geography:'__PREMIUM_PZ_GEOGRAPHY' };
   const pzp = PZP[subject] && window[PZP[subject]];
   if(pzp && pzp.length){ prem = (prem||[]).concat(pzp); }
   if(prem && prem.length){ return arr.concat(prem); }
@@ -800,7 +800,14 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
       </div>
       <!-- blank -->
       <div v-else>
-        <input v-model="paperAnswers[paperIndex]" placeholder="填写答案" style="width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;background:var(--card);color:var(--text)">
+        <!-- 多得分点(压轴/计算题按要点填写) -->
+        <div v-if="paperQs[paperIndex].points&&paperQs[paperIndex].points.length">
+          <div v-for="(p,pi) in paperQs[paperIndex].points" :key="pi" style="margin-bottom:8px">
+            <div style="font-size:12px;color:var(--text2);margin-bottom:4px">{{p.label}}（{{p.score||0}}分）</div>
+            <input :value="(paperAnswers[paperIndex]&&paperAnswers[paperIndex][pi])||''" @input="paperAnswers[paperIndex]=paperAnswers[paperIndex]||{};paperAnswers[paperIndex][pi]=$event.target.value" placeholder="填写你的答案" inputmode="decimal" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;background:var(--card);color:var(--text)">
+          </div>
+        </div>
+        <input v-else v-model="paperAnswers[paperIndex]" placeholder="填写答案" inputmode="decimal" style="width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;background:var(--card);color:var(--text)">
       </div>
       <div style="display:flex;gap:10px;margin-top:16px">
         <button class="btn-ghost" style="flex:1" :disabled="paperIndex===0" @click="paperIndex>0&&paperIndex--">上一题</button>
@@ -840,8 +847,12 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
             <span :style="{color:'var(--success)'}"> 正确答案：{{(q.correct||[]).map(x=>['A','B','C','D'][x]).join(',')}}</span>
           </template>
           <template v-else>
-            <span :style="{color: paperResults[i]&&paperResults[i].ok?'var(--success)':'var(--danger)'}">{{paperResults[i]&&paperResults[i].ok?'✓':'✗'}}</span>
-            <span :style="{color:'var(--success)'}"> 正确答案：{{q.answer}}</span>
+            <span :style="{color: paperResults[i]&&paperResults[i].ok?'var(--success)':'var(--danger)'}">{{(paperResults[i]&&paperResults[i].ok?'✓':'✗')}}</span>
+            <span :style="{color:'var(--success)'}" v-if="!q.points||!q.points.length"> 正确答案：{{q.answer}}</span>
+            <!-- 多得分点得分明细 -->
+            <div v-if="q.points&&q.points.length&&paperResults[i]" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">
+              <span v-for="(pt,pi) in paperResults[i].points" :key="pi" :style="{padding:'2px 8px',borderRadius:'5px',fontSize:'11px',color:pt.ok?'var(--success)':'var(--danger)',background:pt.ok?'#e6f6e6':'#fdecec'}">{{pt.label}}:{{pt.ok?'✓':'✗'}}({{pt.score}}/{{pt.full}}分)</span>
+            </div>
           </template>
         </div>
         <div v-if="paperResults[i]&&!paperResults[i].ok&&q.solution&&q.solution.length" style="font-size:12px;color:var(--text2);margin-top:5px;background:var(--bg);padding:8px;border-radius:6px">解析：{{q.solution[0]}}</div>
@@ -1487,13 +1498,25 @@ const app = createApp({
     },
     submitPaper(){
       clearInterval(this.paperTimer); this.paperTimer=null;
-      // 逐题判分
+      // 逐题判分（支持多得分点：填空/压轴按要点计分）
       this.paperResults = this.paperQs.map((q,i)=>{
-        let ok=false;
-        if(q.type==='choice'){ ok = String(this.paperAnswers[i])===String(q.correct); }
-        else if(q.type==='dual'){ const a=(this.paperAnswers[i]||[]).slice().sort().join(','), c=(q.correct||[]).slice().sort().join(','); ok = a===c; }
-        else { ok = isAnswerCorrect(this.paperAnswers[i], q.answer); }
-        return { ok, score: ok?(q.fullScore||0):0, full:(q.fullScore||0), section:q.section||'', secNo:q.secNo };
+        let ok=false, score=0, full=q.fullScore||0, points=[];
+        if(q.points && q.points.length){
+          // 多得分点（blank）：逐个要点判分，答对几点得几分
+          full = q.points.reduce((s,p)=>s+(p.score||0),0);
+          let anyOk=false;
+          q.points.forEach((p,pi)=>{
+            const u=(this.paperAnswers[i]&&this.paperAnswers[i]!==undefined?this.paperAnswers[i]:{});
+            const uu = (u && u!==undefined) ? u[pi] : undefined;
+            const po = isAnswerCorrect(uu, p.answer);
+            points.push({ label:p.label||('第'+(pi+1)+'空'), ok:po, score: po?(p.score||0):0, full:p.score||0 });
+            if(po){ anyOk=true; score+=(p.score||0); }
+          });
+          ok = score>=full && anyOk;
+        } else if(q.type==='choice'){ ok = String(this.paperAnswers[i])===String(q.correct); score=ok?full:0; }
+        else if(q.type==='dual'){ const a=(this.paperAnswers[i]||[]).slice().sort().join(','), c=(q.correct||[]).slice().sort().join(','); ok = a===c; score=ok?full:0; }
+        else { ok = isAnswerCorrect(this.paperAnswers[i], q.answer); score=ok?full:0; }
+        return { ok, score, full, section:q.section||'', secNo:q.secNo, points };
       });
       this.paperScoreVal = this.paperResults.reduce((s,r)=>s+r.score,0);
       this.paperFullVal = this.paperResults.reduce((s,r)=>s+r.full,0);
