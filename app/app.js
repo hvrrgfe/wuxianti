@@ -513,54 +513,7 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
       <div style="font-size:13px;color:var(--text2);margin-bottom:8px">选择科目</div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
         <div v-for="(s,k) in SUBJECTS" :key="k" class="mm-tab" :class="{active:gen.subject===k}"
-             style="text-align:center;padding:12px 4px" @click="gen.subject=k;gen.kps=[];typeIdx=-1">{{s.name}}</div>
-      </div>
-    </div>
-    <!-- 按题型精准突破（B站名师高分套路题） -->
-    <div class="card" v-if="qtypesFor(gen.subject).length">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div style="font-size:13px;color:var(--text2)">按题型精准突破 <span style="font-size:11px;color:#f59e0b;font-weight:600">⚡ 名师压轴套路</span></div>
-        <span style="font-size:15px;cursor:pointer;color:var(--text3)" @click="typeIdx=-1" :class="{active:typeIdx===-1}" v-if="typeIdx>=-1">取消×</span>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
-        <div v-for="(t,i) in qtypesFor(gen.subject)" :key="i" class="type-chip"
-             :class="{active:typeIdx===i}"
-             @click="typeIdx=i;startByType(t)">
-          <span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:var(--primary);color:#fff;font-weight:700;font-size:12px;flex-shrink:0">{{t.icon}}</span>
-          <span style="font-size:13px;line-height:1.3;flex:1">{{t.name}}</span>
-          <span class="tag" :class="t.diff>=4?'tag-red':t.diff===3?'tag-orange':'tag-green'" style="font-size:10px">难{{t.diff}}</span>
-        </div>
-      </div>
-    </div>
-    <div class="card" v-if="gradesOf(gen.subject).length">
-      <div style="font-size:13px;color:var(--text2);margin-bottom:8px">选择年级 <span style="font-size:11px;color:var(--text3)">（按福建高中课程进度精准出题）</span></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <div class="mm-tab" :class="{active:gen.grade==='all'}" style="padding:8px 14px" @click="gen.grade='all';gen.kps=[]">全部</div>
-        <div v-for="g in gradesOf(gen.subject)" :key="g" class="mm-tab" :class="{active:String(gen.grade)===String(g)}" style="padding:8px 14px" @click="gen.grade=g;gen.kps=[]">{{gradeName(g)}}</div>
-      </div>
-    </div>
-    <!-- 按教材章节出题 -->
-    <div class="card" v-if="textbookBooks(gen.subject).length">
-      <div style="font-size:13px;color:var(--text2);margin-bottom:8px">按教材章节 <span style="font-size:11px;color:var(--text3)">（人教版 · 学到哪练到哪，一键出本单元题）</span></div>
-      <div v-for="(book,bi) in textbookBooks(gen.subject)" :key="bi" style="border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;cursor:pointer;background:var(--bg)" @click="expandedBook=expandedBook===String(bi)?'':String(bi)">
-          <b style="font-size:13px">{{book.book}} <span style="color:var(--text3);font-weight:400;font-size:11px">({{gradeName(book.grade)}})</span></b>
-          <span style="color:var(--text3)">{{expandedBook===String(bi)?'▲':'▼'}}</span>
-        </div>
-        <div v-if="expandedBook===String(bi)">
-          <div v-for="(ch,ci) in book.chapters" :key="ci" style="border-top:1px solid var(--border)">
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 14px">
-              <span style="font-size:13px;flex:1;cursor:pointer" @click="expandedCh=expandedCh===String(ci)?'':String(ci)">{{ch.ch}}.{{ch.title}} <span v-if="ch.sections&&ch.sections.length" style="color:var(--text3);font-size:11px">{{expandedCh===String(ci)?'▲':'▼ 去细化'}}</span></span>
-              <button class="btn-ghost" style="font-size:11px;padding:4px 10px" @click="chooseChapter(gen.subject,bi,ci)">{{ch.kps&&ch.kps.length?'本单元出题':'暂无模板'}}</button>
-            </div>
-            <div v-if="expandedCh===String(ci)&&(ch.sections||[]).length" style="padding:2px 14px 8px 26px">
-              <div v-for="(se,si) in ch.sections" :key="si" style="display:flex;justify-content:space-between;align-items:center;padding:5px 0">
-                <span style="font-size:12px;color:var(--text2);flex:1">{{ch.ch}}.{{se.sec}} {{se.title}}</span>
-                <button class="btn-ghost" style="font-size:10px;padding:2px 8px" @click="chooseSection(gen.subject,bi,ci,si)">{{se.kps&&se.kps.length?'本节出题':'暂无'}}</button>
-              </div>
-            </div>
-          </div>
-        </div>
+             style="text-align:center;padding:12px 4px" @click="gen.subject=k;gen.kps=[]">{{s.name}}</div>
       </div>
     </div>
     <div class="card">
@@ -569,7 +522,7 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
         <span style="font-size:12px;color:var(--success)">已选{{gen.kps.length}}</span>
       </div>
       <div style="margin-top:10px">
-        <div v-for="kp in kpsOfGrade(gen.subject, gen.grade)" :key="kp" class="kp-item" @click="toggleKp(kp)">
+        <div v-for="kp in allKpsFor(gen.subject)" :key="kp" class="kp-item" @click="toggleKp(kp)">
           <input type="checkbox" :checked="gen.kps.indexOf(kp)>=0" style="width:18px;height:18px">
           <span style="flex:1;font-size:14px">{{kp}}</span>
         </div>
@@ -607,14 +560,17 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
       <span style="cursor:pointer;font-size:15px;margin-right:8px" @click="toggleDraft()" title="草稿板">✍️</span>
       <button class="btn-ghost" style="font-size:12px;padding:4px 10px" @click="startGenerate()">换题</button>
     </div>
-    <!-- 草稿板 -->
+    <!-- 草稿板：手写涂鸦 + 文字 -->
     <div class="card" v-if="draftVisible" style="background:#fffff5;border:1px dashed #e0b45c;padding:12px">
-      <div style="display:flex;justify-content:space-between;font-size:12px;color:#8a6d3b;margin-bottom:6px">
-        <b>草稿板</b><span style="cursor:pointer" @click="draftClear()">清空</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#8a6d3b;margin-bottom:6px">
+        <b>🖊 草稿板 <span style="font-weight:400;color:#b0a07a">（手指/鼠标直接涂写演算）</span></b>
+        <span style="cursor:pointer" @click="draftClear()">🗑 清空</span>
       </div>
-      <textarea v-model="draftText" placeholder="在这里打草稿/演算…" style="width:100%;min-height:60px;font-size:14px;border:none;background:transparent;resize:vertical;color:var(--text)"></textarea>
+      <canvas ref="draftCanvas" @pointerdown="handDown($event)" @pointermove="handMove($event)" @pointerup="handEnd($event)" @pointerleave="handEnd($event)"
+        style="width:100%;height:180px;background:#fff;border:1px solid #eadfc0;border-radius:10px;touch-action:none;cursor:crosshair"></canvas>
+      <div style="margin-top:6px"><textarea v-model="draftText" placeholder="也可在此输入文字备注…" style="width:100%;min-height:44px;font-size:13px;border:1px dashed #e2d7b8;border-radius:8px;background:#fffdf5;padding:8px;color:#7a6d45;resize:vertical"></textarea></div>
     </div>
-    <div v-if="draftVisible && draftText" style="padding:0 16px;font-size:12px;color:#8a6d3b">（草稿内容：{{draftText.slice(0,30)}}）</div>
+    <div v-if="draftVisible && draftText" style="padding:0 16px;font-size:12px;color:#8a6d3b">（备注：{{draftText.slice(0,30)}}）</div>
     <div class="progress" style="background:#e5e7eb;margin:0 16px"><div class="progress-fill" style="height:100%;background:var(--primary)" :style="{width:(qAnsweredCount()/genList.length*100)+'%'}"></div></div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:8px">
@@ -640,7 +596,8 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
       <div v-else>
         <input v-model="curAnswer" :placeholder="'请填写答案'+(currentQ().unit?'（'+currentQ().unit+'）':'')" style="width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;background:var(--card);color:var(--text)">
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
-          <span v-for="m in mathKeys()" :key="m" @click="insertMath(m)" style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;background:var(--bg)">{{m}}</span>
+          <span v-if="showMathPad()" v-for="m in mathKeys()" :key="m" @click="insertMath(m)" style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;background:var(--bg)">{{m}}</span>
+          <span v-if="showMathPad()" @click="insertMath(' ')">&nbsp␣&nbsp</span>
           <span @click="draftVisible=true" style="padding:5px 10px;border:1px dashed var(--accent);color:var(--accent);border-radius:6px;font-size:13px;cursor:pointer">✍️ 草稿</span>
         </div>
       </div>
@@ -1190,13 +1147,7 @@ const app = createApp({
       const subj=this.gen.subject;
       let kps=this.gen.kps.slice();
       if(!kps.length){
-        // 按年级过滤：若选了年级，只在该年级知识点内智能推荐
-        if(this.gen.grade && this.gen.grade!=='all'){
-          const gkps=this.kpsOfGrade(subj, this.gen.grade);
-          kps = gkps.length ? this.smartPickKps(subj, 3, gkps) : this.smartPickKps(subj);
-        } else {
-          kps = this.smartPickKps(subj);
-        }
+        kps = this.smartPickKps(subj);
       }
       const typeFilter = this.gen.types.choice&&this.gen.types.blank&&this.gen.types.dual ? 'all' : (this.gen.types.choice?'choice':this.gen.types.blank?'blank' : this.gen.types.dual?'dual':'all');
       let qs = genQuestions(subj, kps, this.gen.difficulty, this.gen.count, typeFilter);
@@ -1571,12 +1522,48 @@ const app = createApp({
       this.downloadPDF('模拟试卷', html, '模拟试卷');
     },
     // ================= 草稿板 =================
-    toggleDraft(){ this.draftVisible=!this.draftVisible; },
+    toggleDraft(){ this.draftVisible=!this.draftVisible; setTimeout(()=>this.handResize(),60); },
     draftAdd(item){ if(item) this.draftLines.push(item); },
-    draftClear(){ this.draftLines=[]; },
+    draftClear(){ this._handCtx=null; this.draftText=''; if(this.$refs&&this.$refs.draftCanvas){ const c=this.$refs.draftCanvas; const ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height); } },
+    handDown(e){ this._handDrawing=true; this._handLast=[this._hp(e).x,this._hp(e).y]; },
+    handMove(e){
+      if(!this._handDrawing) return;
+      const c=this._getHandCtx(); if(!c) return;
+      const p=this._hp(e);
+      c.lineWidth=4; c.lineCap='round'; c.lineJoin='round'; c.strokeStyle='#374151';
+      c.beginPath(); c.moveTo(this._handLast[0],this._handLast[1]); c.lineTo(p.x,p.y); c.stroke();
+      this._handLast=[p.x,p.y];
+    },
+    handEnd(){ this._handDrawing=false; },
+    _getHandCtx(){
+      if(this._handCtx) return this._handCtx;
+      const c=this.$refs&&this.$refs.draftCanvas;
+      if(!c) return null;
+      const rect=c.getBoundingClientRect();
+      const dpr=window.devicePixelRatio||1;
+      c.width=Math.round(rect.width*dpr); c.height=Math.round(rect.height*dpr);
+      const ctx=c.getContext('2d'); ctx.scale(dpr,dpr);
+      this._handCtx=ctx; return ctx;
+    },
+    handResize(){ this._handCtx=null; },
+    _hp(e){
+      const c=this.$refs&&this.$refs.draftCanvas;
+      const rect=c?c.getBoundingClientRect():{left:0,top:0};
+      const pt = e.touches&&e.touches[0] ? e.touches[0] : e;
+      return { x:(pt.clientX-rect.left), y:(pt.clientY-rect.top) };
+    },
+    // 按学科决定是否显示数学数字/符号键盘
+    showMathPad(){ const s=this.gen.subject; return (s==='math'||s==='physics'||s==='chemistry'||s==='biology'); },
     // ================= 数学输入快捷 =================
     insertMath(sym){ this.curAnswer = (this.curAnswer||'') + sym; },
-    mathKeys(){ return ['√','x²','x³','÷','×','±','π','·','{','}','(' ,')','^']; },
+    mathKeys(){
+      switch(this.gen.subject){
+        case 'physics': return ['√','÷','×','·','^','±','µ','θ','Ω','π'];
+        case 'chemistry': return ['ₙ','ⁿ','²','³','·','→','⇌','↑','↓','+','−'];
+        case 'biology': return ['×','÷','→','/','%','λ','²'];
+        default: return ['√','x²','x³','÷','×','±','π','·','{','}','(' ,')','^'];
+      }
+    },
   },
   mounted(){
     // 首次访问自动进入新手引导
