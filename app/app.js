@@ -95,12 +95,12 @@ function gaokaoDays(){
   return days>0?days:0;
 }
 const PAPER_STRUCT = {
-  math: { name:'数学·新课标Ⅰ卷', full:150, time:120, parts:[{t:'单选',n:8,each:5},{t:'多选',n:3,each:6},{t:'填空',n:3,each:5},{t:'解答',n:5,each:15.4}] },
-  physics: { name:'物理·福建卷', full:100, time:75, parts:[{t:'单选',n:4,each:4},{t:'双选',n:4,each:6},{t:'填空',n:3,each:4},{t:'做答',n:3,each:10}] },
-  chemistry: { name:'化学·福建卷', full:100, time:75, parts:[{t:'单选',n:10,each:4},{t:'综合',n:4,each:15}] },
-  biology: { name:'生物·福建卷', full:100, time:75, parts:[{t:'单选',n:20,each:2},{t:'综合',n:4,each:10}] },
-  english: { name:'英语·新课标Ⅰ卷', full:150, time:120, parts:[{t:'语言运用',n:10,each:1.5}] },
-  chinese: { name:'语文·新课标Ⅰ卷', full:150, time:150, parts:[{t:'名句',n:3,each:2}] },
+  math: { name:'数学·新课标Ⅰ卷', full:150, time:120, parts:[{t:'单选',n:8,each:5},{t:'多选',n:3,each:6},{t:'填空',n:3,each:5},{t:'解答',n:5,each:15}] },
+  physics: { name:'物理·福建卷', full:100, time:75, parts:[{t:'单选',n:4,each:4},{t:'双选',n:4,each:6},{t:'填空',n:3,each:4},{t:'实验',n:2,each:5},{t:'计算',n:3,each:10}] },
+  chemistry: { name:'化学·福建卷', full:100, time:75, parts:[{t:'单选',n:10,each:4},{t:'工艺流程',n:1,each:15},{t:'反应原理',n:1,each:15},{t:'实验探究',n:1,each:15},{t:'结构与有机',n:1,each:15}] },
+  biology: { name:'生物·福建卷', full:100, time:75, parts:[{t:'单选',n:20,each:2},{t:'非选择题',n:4,each:15}] },
+  english: { name:'英语·新课标Ⅰ卷', full:150, time:120, parts:[{t:'听力',n:20,each:1.5},{t:'阅读理解',n:20,each:2.5},{t:'语言运用',n:25,each:1.2},{t:'写作',n:2,each:20}] },
+  chinese: { name:'语文·新课标Ⅰ卷', full:150, time:150, parts:[{t:'现代文阅读',n:9,each:4},{t:'古代诗文',n:12,each:3},{t:'语言文字运用',n:8,each:2.5},{t:'写作',n:1,each:60}] },
   politics: { name:'政治·新课标卷', full:100, time:75, parts:[{t:'选择',n:12,each:3},{t:'材料分析',n:3,each:12}] },
   history: { name:'历史·新课标卷', full:100, time:75, parts:[{t:'选择',n:12,each:3},{t:'材料解析',n:3,each:12}] },
   geography: { name:'地理·新课标卷', full:100, time:75, parts:[{t:'选择',n:11,each:3},{t:'综合题',n:3,each:12}] }
@@ -138,7 +138,7 @@ function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+(d.getMonth(
 // ============ 出题生成器：从模板库生成题目（含验算） ============
 function getTemplates(subject){
   const arr = window[SUBJECTS[subject].tpl] || [];
-  const PREM = { math:'__PREMIUM', physics:'__PREMIUM_PHYSICS', chemistry:'__PREMIUM_CHEMISTRY', biology:'__PREMIUM_BIOLOGY', chinese:'__PREMIUM_CHINESE', english:'__PREMIUM_ENGLISH' };
+  const PREM = { math:'__PREMIUM', physics:'__PREMIUM_PHYSICS', chemistry:'__PREMIUM_CHEMISTRY', biology:'__PREMIUM_BIOLOGY', chinese:'__PREMIUM_CHINESE', english:'__PREMIUM_ENGLISH', politics:'__PREMIUM_POLITICS', history:'__PREMIUM_HISTORY', geography:'__PREMIUM_GEOGRAPHY' };
   const prem = PREM[subject] && window[PREM[subject]];
   if(prem && prem.length){ return arr.concat(prem); }
   return arr;
