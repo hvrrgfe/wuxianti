@@ -783,7 +783,10 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
       <span v-else style="font-size:13px">不限时</span>
     </div>
     <div class="card" v-if="paperQs[paperIndex]">
-      <div class="tag tag-blue">{{paperQs[paperIndex].kp}}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
+        <span class="tag tag-blue">{{paperQs[paperIndex].kp}}</span>
+        <span v-if="paperQs[paperIndex].section" style="font-size:11px;color:var(--text3)">第{{paperQs[paperIndex].secNo}}题 · {{paperQs[paperIndex].fullScore}}分</span>
+      </div>
       <div style="font-size:16px;line-height:1.7;margin:10px 0">{{paperQs[paperIndex].text}}</div>
       <!-- choice -->
       <div v-if="paperQs[paperIndex].type==='choice'">
@@ -1420,12 +1423,27 @@ const app = createApp({
       const struct=this.paperStruct(); const subj=this.paper.subject;
       const allKps=getKps(subj);
       const kps=this.gen.kps.length?this.gen.kps:allKps;
-      // 生成足够题目（每个模板轮询）
       const diffs = this.paper.difficulty==='easy'?1:this.paper.difficulty==='hard'?3:2;
-      const qs = genQuestions(subj, kps, diffs, 12, 'all');
+      const qs=[]; let qno=0;
+      // 按卷面结构逐题型生成（严格对标福建高考）
+      (struct.parts||[]).forEach((part,pi)=>{
+        for(let i=0;i<part.n && qs.length<40;i++){
+          const typeMap={ '单选':'choice','选择':'choice','多选':'dual','双选':'dual','填空':'blank','解答':'blank','语言运用':'blank','语法填空':'blank','听力':'choice','阅读理解':'choice','完形填空':'choice' };
+          const tf=typeMap[part.t];
+          if(part.t==='写作'||part.t.includes('作文')){ continue; } // 写作无法参数化
+          let batch=genQuestions(subj, kps, diffs, 1, tf||'all');
+          // 若当前section无该题型模板，放宽为任意
+          if(!batch.length) batch=genQuestions(subj, kps, diffs, 1, 'all');
+          if(batch.length){
+            const q=batch[0];
+            q.section=part.t; q.sectionIdx=pi; q.secNo=(i+1);
+            q.fullScore=part.each;
+            qs.push(q);
+          }
+        }
+      });
       if(!qs.length){ this.help='试卷生成失败，请更换科目或知识点'; return; }
-      this.paperQs = qs.slice(0, Math.min(qs.length, 14));
-      this.paperIndex=0; this.paperAnswers={};
+      this.paperQs=qs; this.paperIndex=0; this.paperAnswers={};
       if(this.paper.timing){ this.paperTimeLeft=struct.time*60; this.startPaperTimer(); }
       this.paperStart=Date.now();
       this.goKeep('paper');
