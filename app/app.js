@@ -68,7 +68,29 @@ const QTYPES = {
     { name:'种群增长', kps:['种群增长'], diff:2, icon:'N' }
   ]
 };
-// 各科试卷结构（福建高考/全国卷，用于模拟卷生成）
+// ============ 高考考点体系（基于历年真题真实频率） ============
+// 每个高考考点: 名称 / 近25年考查次数 / 对应刷题知识点(kp)
+const GAOKAO = [
+  { tag:'解析几何', freq:2270, kps:['圆锥曲线','直线与圆(弦长)','椭圆焦点三角形','直线交点','圆·扇形','平面向量'] },
+  { tag:'函数与导数', freq:2101, kps:['导数','导数(切线方程)','导数(恒成立求参)','二次函数','一次函数','反比例函数','函数(周期求值)','幂运算'] },
+  { tag:'立体几何', freq:1494, kps:['立体几何','空间向量'] },
+  { tag:'三角函数与解三角形', freq:1270, kps:['三角求值','解三角形(余弦定理)','三角形','勾股定理'] },
+  { tag:'概率与统计', freq:1052, kps:['概率(条件概率)','古典概型','随机变量','成对数据回归','平均数/中位数'] },
+  { tag:'数列', freq:983, kps:['等差数列','等比数列','数列求和(错位相减)','数列求和(裂项相消)'] },
+  { tag:'不等式', freq:751, kps:['一元一次不等式','一元二次方程'] },
+  { tag:'集合', freq:602, kps:['集合'] },
+  { tag:'排列组合', freq:538, kps:['排列组合'] },
+  { tag:'复数', freq:474, kps:['复数'] }
+];
+// 逆向: kp -> 高考考点(就近取)
+function gaokaoOfKp(kp){ for(const g of GAOKAO){ if(g.kps.indexOf(kp)>=0) return g; } return null; }
+// 高考倒计时(以2026年6月7日为例)
+function gaokaoDays(){
+  const now=new Date();
+  const target=new Date(2027,5,7); // 2027-06-07
+  const days=Math.ceil((target-now)/86400000);
+  return days>0?days:0;
+}
 const PAPER_STRUCT = {
   math: { name:'数学·新课标Ⅰ卷', full:150, time:120, parts:[{t:'单选',n:8,each:5},{t:'多选',n:3,each:6},{t:'填空',n:3,each:5},{t:'解答',n:5,each:15.4}] },
   physics: { name:'物理·福建卷', full:100, time:75, parts:[{t:'单选',n:4,each:4},{t:'双选',n:4,each:6},{t:'填空',n:3,each:4},{t:'做答',n:3,each:10}] },
@@ -473,6 +495,20 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
       </div>
     </div>
 
+    <!-- 高考冲刺（连接高考真题考频） -->
+    <div class="card" style="border:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-size:13px;color:var(--text2)">🎓 高考冲刺 <span style="font-size:11px;color:var(--text3)">按历年真题考频排序</span></div>
+        <span class="tag tag-red" style="font-size:12px">距高考 {{gaokaoDays()}} 天</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px">
+        <div v-for="(g,i) in gaokaoTop()" :key="g.tag" class="gaokao-kp" @click="startGaokaoKp(g)" style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;background:var(--bg);gap:6px">
+          <span style="display:flex;align-items:center;gap:6px;flex:1"><span class="tag" :class="'tag-'+(i===0?'red':i===1?'orange':'blue')" style="font-size:10px">{{['高频','高频','必刷'][i]||'必刷'}}</span><b>{{g.tag}}</b></span>
+          <span style="color:var(--text3);font-size:11px;white-space:nowrap">{{g.freq}}题</span>
+        </div>
+      </div>
+    </div>
+
     <!-- 薄弱点专项 -->
     <div class="card" v-for="(w,i) in weakKp" :key="'w'+i" style="cursor:pointer" @click="startTrainKp(w.key)">
       <div style="display:flex;justify-content:space-between;align-items:center">
@@ -592,8 +628,11 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
     <div v-if="draftVisible && draftText" style="padding:0 16px;font-size:12px;color:#8a6d3b">（备注：{{draftText.slice(0,30)}}）</div>
     <div class="progress" style="background:#e5e7eb;margin:0 16px"><div class="progress-fill" style="height:100%;background:var(--primary)" :style="{width:(qAnsweredCount()/genList.length*100)+'%'}"></div></div>
     <div class="card">
-      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:8px">
-        <span class="tag" :class="currentQ().diff>=3?'tag-red':currentQ().diff===2?'tag-orange':'tag-green'">难度{{currentQ().diff}}</span>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:8px;flex-wrap:wrap;gap:4px">
+        <span style="display:flex;gap:4px;flex-wrap:wrap">
+          <span class="tag" :class="currentQ().diff>=3?'tag-red':currentQ().diff===2?'tag-orange':'tag-green'">难度{{currentQ().diff}}</span>
+          <span v-if="gaokaoOfKp(currentQ().kp)" class="tag tag-blue" style="font-size:10px">🎓{{gaokaoOfKp(currentQ().kp).tag}}·必刷</span>
+        </span>
         <span>{{SUBJECTS[gen.subject].name}}</span>
       </div>
       <div style="font-size:16px;line-height:1.7;white-space:pre-wrap;margin:6px 0 14px">{{currentQ().text}}</div>
@@ -1545,6 +1584,18 @@ const app = createApp({
       const ranked=list.slice().sort(()=>0.5-Math.random());
       return ranked.slice(0,n);
     },
+    // ========== 高考冲刺 ==========
+    gaokaoDays(){ return gaokaoDays(); },
+    gaokaoTop(){ return GAOKAO.slice(0,6); },
+    gaokaoOfKp(kp){ return gaokaoOfKp(kp); },
+    startGaokaoKp(g){
+      // 从该高考考点对应知识点中，挑个性化最薄弱的去出题
+      this.gen.subject='math';
+      const cands=g.kps.filter(k=>getKps('math').indexOf(k)>=0);
+      const pick=this.smartPickKps('math',3,cands);
+      this.gen.kps=pick.length?pick:[cands[0]];
+      this.startGenerate();
+    },
     startTrainKp(kp){ this.gen.subject=this.graphSub; this.gen.kps=[kp]; this.startGenerate(); },
     // ========== 导出报告/清除 ==========
     exportReport(){
@@ -1774,6 +1825,9 @@ try{ app.config.globalProperties.SUBJECTS = SUBJECTS; }catch(e){}
 try{ app.config.globalProperties.PAPER_STRUCT = PAPER_STRUCT; }catch(e){}
 try{ app.config.globalProperties.ICONS = ICONS; }catch(e){}
 try{ app.config.globalProperties.QTYPES = QTYPES; }catch(e){}
+try{ app.config.globalProperties.GAOKAO = GAOKAO; }catch(e){}
+try{ app.config.globalProperties.gaokaoDays = gaokaoDays; }catch(e){}
+try{ app.config.globalProperties.gaokaoOfKp = gaokaoOfKp; }catch(e){}
 // 全局错误兜底：任何页面渲染出错时回到首页，避免白屏
 app.config.errorHandler = function(err, instance, info){
   try{ console.error('[无限题]渲染错误:', err && err.message, info); }catch(e){}
