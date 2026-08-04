@@ -82,9 +82,12 @@ const GAOKAO = [
   { tag:'排列组合', freq:538, kps:['排列组合'] },
   { tag:'复数', freq:474, kps:['复数'] }
 ];
-// 逆向: kp -> 高考考点(就近取)
-function gaokaoOfKp(kp){ for(const g of GAOKAO){ if(g.kps.indexOf(kp)>=0) return g; } return null; }
-// 高考倒计时(以2026年6月7日为例)
+// 逆向: kp -> 高考考点(就近取, 仅数学有kps映射)
+const GAOKAO_KP = GAOKAO; // 数学kps映射保留
+function gaokaoOfKp(kp){ for(const g of GAOKAO_KP){ if(g.kps.indexOf(kp)>=0) return g; } return null; }
+// 九科高考数据: __GAOKAO_SUBJECTS = {subject:{pred:[...],tags:[{tag,freq}]}}
+function gaokaoData(subj){ try{ const D=(typeof window!=='undefined'&&window.__GAOKAO_SUBJECTS)||{}; return D[subj]||{pred:[],tags:[]}; }catch(e){ return {pred:[],tags:[]}; } }
+// 高考倒计时(以2027年6月7日为例)
 function gaokaoDays(){
   const now=new Date();
   const target=new Date(2027,5,7); // 2027-06-07
@@ -495,17 +498,20 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
       </div>
     </div>
 
-    <!-- 高考冲刺（连接高考真题考频） -->
+    <!-- 高考冲刺（真题考频+名师预测） -->
     <div class="card" style="border:1px solid var(--border)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div style="font-size:13px;color:var(--text2)">🎓 高考冲刺 <span style="font-size:11px;color:var(--text3)">按历年真题考频排序</span></div>
-        <span class="tag tag-red" style="font-size:12px">距高考 {{gaokaoDays()}} 天</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="font-size:13px;color:var(--text2)">🎓 {{SUBJECTS[gen.subject].name}}·高考高频考点</div>
+        <span style="font-size:11px;color:var(--text3)">距高考 {{gaokaoDays()}} 天</span>
       </div>
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px">
-        <div v-for="(g,i) in gaokaoTop()" :key="g.tag" class="gaokao-kp" @click="startGaokaoKp(g)" style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;background:var(--bg);gap:6px">
-          <span style="display:flex;align-items:center;gap:6px;flex:1"><span class="tag" :class="'tag-'+(i===0?'red':i===1?'orange':'blue')" style="font-size:10px">{{['高频','高频','必刷'][i]||'必刷'}}</span><b>{{g.tag}}</b></span>
+        <div v-for="(g,i) in gaokaoTop()" :key="g.tag" @click="startGaokaoKp(g)" style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;background:var(--bg);gap:6px">
+          <span style="flex:1"><b>{{g.tag}}</b></span>
           <span style="color:var(--text3);font-size:11px;white-space:nowrap">{{g.freq}}题</span>
         </div>
+      </div>
+      <div v-if="gaokaoPred().length" style="margin-top:8px;font-size:11px;color:var(--text3);line-height:1.5">
+        <span style="color:#f59e0b">🔥 名师预测 2026：</span>{{gaokaoPred().join(' · ')}}
       </div>
     </div>
 
@@ -1586,14 +1592,17 @@ const app = createApp({
     },
     // ========== 高考冲刺 ==========
     gaokaoDays(){ return gaokaoDays(); },
-    gaokaoTop(){ return GAOKAO.slice(0,6); },
+    gaokaoTop(){ const d=gaokaoData(this.gen.subject); const tags=(d.tags||[]).slice(0,6); if(tags.length) return tags; return GAOKAO.slice(0,6); },
+    gaokaoPred(){ const d=gaokaoData(this.gen.subject); return (d.pred||[]).slice(0,3); },
     gaokaoOfKp(kp){ return gaokaoOfKp(kp); },
-    startGaokaoKp(g){
-      // 从该高考考点对应知识点中，挑个性化最薄弱的去出题
-      this.gen.subject='math';
-      const cands=g.kps.filter(k=>getKps('math').indexOf(k)>=0);
-      const pick=this.smartPickKps('math',3,cands);
-      this.gen.kps=pick.length?pick:[cands[0]];
+    startGaokaoKp(g, subj){
+      subj = subj || this.gen.subject;
+      this.gen.subject=subj;
+      let kps = (g.kps && g.kps.length) ? g.kps : null;
+      if(!kps){ const all=getKps(subj); kps=all.slice(0,3); }
+      const cands=kps.filter(k=>getKps(subj).indexOf(k)>=0);
+      const pick=this.smartPickKps(subj,3,cands);
+      this.gen.kps=pick.length?pick:(cands.length?[cands[0]]:this.smartPickKps(subj,2));
       this.startGenerate();
     },
     startTrainKp(kp){ this.gen.subject=this.graphSub; this.gen.kps=[kp]; this.startGenerate(); },
