@@ -142,6 +142,10 @@ function getTemplates(subject){
   let prem = PREM[subject] && window[PREM[subject]];
   // 数学叠加压轴题库
   if(subject==='math' && window.__PREMIUM_PZ && window.__PREMIUM_PZ.length){ prem = (prem||[]).concat(window.__PREMIUM_PZ); }
+  // 理化生叠加压轴题库
+  const PZP = { physics:'__PREMIUM_PZ_PHYSICS', chemistry:'__PREMIUM_PZ_CHEMISTRY', biology:'__PREMIUM_PZ_BIOLOGY' };
+  const pzp = PZP[subject] && window[PZP[subject]];
+  if(pzp && pzp.length){ prem = (prem||[]).concat(pzp); }
   if(prem && prem.length){ return arr.concat(prem); }
   return arr;
 }
