@@ -142,6 +142,12 @@ function getTemplates(subject){
   let prem = PREM[subject] && window[PREM[subject]];
   // 数学叠加压轴题库
   if(subject==='math' && window.__PREMIUM_PZ && window.__PREMIUM_PZ.length){ prem = (prem||[]).concat(window.__PREMIUM_PZ); }
+  // 数学叠加高中深化模板
+  if(subject==='math' && window.__PREMIUM_MATH_HS && window.__PREMIUM_MATH_HS.length){ prem = (prem||[]).concat(window.__PREMIUM_MATH_HS); }
+  // 语文叠加高中深化模板
+  if(subject==='chinese' && window.__PREMIUM_CHINESE_HS && window.__PREMIUM_CHINESE_HS.length){ prem = (prem||[]).concat(window.__PREMIUM_CHINESE_HS); }
+  // 英语叠加高中深化模板
+  if(subject==='english' && window.__PREMIUM_ENGLISH_HS && window.__PREMIUM_ENGLISH_HS.length){ prem = (prem||[]).concat(window.__PREMIUM_ENGLISH_HS); }
   // 理化生+政史地叠加压轴题库
   const PZP = { physics:'__PREMIUM_PZ_PHYSICS', chemistry:'__PREMIUM_PZ_CHEMISTRY', biology:'__PREMIUM_PZ_BIOLOGY', politics:'__PREMIUM_PZ_POLITICS', history:'__PREMIUM_PZ_HISTORY', geography:'__PREMIUM_PZ_GEOGRAPHY' };
   const pzp = PZP[subject] && window[PZP[subject]];
