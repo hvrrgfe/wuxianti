@@ -13,6 +13,61 @@ const SUBJECTS = {
   history: { name:'历史', short:'史', color:'#92400E', tpl:'__HistoryTemplates' },
   geography: { name:'地理', short:'地', color:'#059669', tpl:'__GeographyTemplates' }
 };
+// ============ 题型库（B站名师高分套路，按题型精准突破） ============
+// 每个题型映射到具体知识点(模板)，点选即出该类题型新题
+const QTYPES = {
+  math: [
+    { name:'数列·错位相减求和', kps:['数列求和(错位相减)'], diff:4, icon:'Σ' },
+    { name:'数列·裂项相消求和', kps:['数列求和(裂项相消)'], diff:3, icon:'∑' },
+    { name:'导数·求切线方程', kps:['导数(切线方程)'], diff:3, icon:'fd' },
+    { name:'导数·恒成立求参', kps:['导数(恒成立求参)'], diff:4, icon:'m' },
+    { name:'函数·周期求值', kps:['函数(周期求值)'], diff:3, icon:'T' },
+    { name:'解析几何·直线与圆弦长', kps:['直线与圆(弦长)'], diff:3, icon:'chord' },
+    { name:'解析几何·椭圆焦点三角形', kps:['椭圆焦点三角形'], diff:3, icon:'ell' },
+    { name:'解三角形·余弦定理', kps:['解三角形(余弦定理)'], diff:3, icon:'angle' },
+    { name:'概率·条件概率', kps:['概率(条件概率)'], diff:4, icon:'P' },
+    { name:'导数·基本运算', kps:['导数'], diff:3, icon:'dx' },
+    { name:'数列·等差通项', kps:['等差数列'], diff:2, icon:'an' },
+    { name:'数列·等比通项', kps:['等比数列'], diff:2, icon:'an' },
+    { name:'圆锥曲线·椭圆', kps:['圆锥曲线'], diff:3, icon:'ell' },
+    { name:'向量·坐标运算', kps:['平面向量'], diff:2, icon:'vec' },
+    { name:'立体·体积空间', kps:['立体几何'], diff:3, icon:'cube' },
+    { name:'排列组合', kps:['排列组合'], diff:3, icon:'C' }
+  ],
+  physics: [
+    { name:'运动学·追及相遇', kps:['追及相遇'], diff:4, icon:'t' },
+    { name:'牛顿定律·含摩擦', kps:['牛顿第二定律(摩擦)'], diff:3, icon:'F' },
+    { name:'功与能·动能定理', kps:['动能定理'], diff:4, icon:'E' },
+    { name:'动量·碰撞', kps:['动量守恒(碰撞)'], diff:4, icon:'mv' },
+    { name:'电磁感应·切割', kps:['电磁感应(切割)'], diff:5, icon:'B' },
+    { name:'抛体·平抛', kps:['平抛运动'], diff:3, icon:'v0' },
+    { name:'牛顿第二定律', kps:['牛顿第二定律'], diff:2, icon:'F=ma' },
+    { name:'匀变速·位移', kps:['匀变速位移'], diff:2, icon:'s' },
+    { name:'电学·欧姆定律', kps:['欧姆定律'], diff:2, icon:'Ohm' },
+    { name:'电学·功率', kps:['电功率'], diff:2, icon:'W' },
+    { name:'功能·功与功率', kps:['功','功率'], diff:2, icon:'P' }
+  ],
+  chemistry: [
+    { name:'物质的量·质量换算', kps:['物质的量换算'], diff:3, icon:'n' },
+    { name:'气体·摩尔体积', kps:['气体摩尔体积'], diff:3, icon:'V' },
+    { name:'氧化还原·电子转移', kps:['电子转移'], diff:4, icon:'e' },
+    { name:'平衡常数K', kps:['化学平衡常数'], diff:4, icon:'K' },
+    { name:'反应速率', kps:['化学反应速率'], diff:3, icon:'v' },
+    { name:'有机·分子式推断', kps:['有机物分子式'], diff:4, icon:'C' },
+    { name:'相对分子质量', kps:['相对分子质量'], diff:1, icon:'M' },
+    { name:'溶质质量分数', kps:['溶质质量分数'], diff:2, icon:'%' }
+  ],
+  biology: [
+    { name:'遗传·自由组合', kps:['遗传·自由组合'], diff:4, icon:'Aa' },
+    { name:'遗传·患病概率', kps:['遗传·患病概率'], diff:3, icon:'dis' },
+    { name:'基因频率', kps:['基因频率'], diff:4, icon:'f' },
+    { name:'种群·J型增长', kps:['种群增长J型'], diff:3, icon:'lam' },
+    { name:'光合与呼吸', kps:['光合/呼吸作用'], diff:3, icon:'sun' },
+    { name:'能量流动·传递效率', kps:['能量传递效率'], diff:3, icon:'flow' },
+    { name:'遗传·配子比例', kps:['遗传·配子比例'], diff:2, icon:'1:1' },
+    { name:'种群增长', kps:['种群增长'], diff:2, icon:'N' }
+  ]
+};
 // 各科试卷结构（福建高考/全国卷，用于模拟卷生成）
 const PAPER_STRUCT = {
   math: { name:'数学·新课标Ⅰ卷', full:150, time:120, parts:[{t:'单选',n:8,each:5},{t:'多选',n:3,each:6},{t:'填空',n:3,each:5},{t:'解答',n:5,each:15.4}] },
@@ -458,7 +513,23 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
       <div style="font-size:13px;color:var(--text2);margin-bottom:8px">选择科目</div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
         <div v-for="(s,k) in SUBJECTS" :key="k" class="mm-tab" :class="{active:gen.subject===k}"
-             style="text-align:center;padding:12px 4px" @click="gen.subject=k;gen.kps=[]">{{s.name}}</div>
+             style="text-align:center;padding:12px 4px" @click="gen.subject=k;gen.kps=[];typeIdx=-1">{{s.name}}</div>
+      </div>
+    </div>
+    <!-- 按题型精准突破（B站名师高分套路题） -->
+    <div class="card" v-if="qtypesFor(gen.subject).length">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:13px;color:var(--text2)">按题型精准突破 <span style="font-size:11px;color:#f59e0b;font-weight:600">⚡ 名师压轴套路</span></div>
+        <span style="font-size:15px;cursor:pointer;color:var(--text3)" @click="typeIdx=-1" :class="{active:typeIdx===-1}" v-if="typeIdx>=-1">取消×</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+        <div v-for="(t,i) in qtypesFor(gen.subject)" :key="i" class="type-chip"
+             :class="{active:typeIdx===i}"
+             @click="typeIdx=i;startByType(t)">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:var(--primary);color:#fff;font-weight:700;font-size:12px;flex-shrink:0">{{t.icon}}</span>
+          <span style="font-size:13px;line-height:1.3;flex:1">{{t.name}}</span>
+          <span class="tag" :class="t.diff>=4?'tag-red':t.diff===3?'tag-orange':'tag-green'" style="font-size:10px">难{{t.diff}}</span>
+        </div>
       </div>
     </div>
     <div class="card" v-if="gradesOf(gen.subject).length">
@@ -959,6 +1030,7 @@ const app = createApp({
       records: store.get('wx_records',[]),
       mistakes: store.get('wx_mistakes',[]),
       gen:{ subject:'math', kps:[], difficulty:'auto', count:10, grade:'all', types:{choice:true,blank:true,dual:true} },
+      typeIdx:-1,
       expandedBook:'0',
       expandedCh:'',
       genAims:[], genList:[], genIndex:0, genType:'',
@@ -1090,6 +1162,29 @@ const app = createApp({
     },
     chapterKps(book, ch){ return (ch.kps||[]).filter(Boolean); },
     toggleKp(kp){ const i=this.gen.kps.indexOf(kp); if(i>=0)this.gen.kps.splice(i,1); else if(this.gen.kps.length<5) this.gen.kps.push(kp); },
+    qtypesFor(subj){ return (QTYPES||{})[subj] || []; },
+    startByType(type){
+      const subj=this.gen.subject;
+      this.gen.kps = type.kps.slice(0,5);
+      this.gen.grade = 'all';
+      if(type.diff) this.gen.difficulty = type.diff>=4?'hard':type.diff===3?'auto':'easy';
+      const typeFilter = this.gen.types.choice&&this.gen.types.blank&&this.gen.types.dual ? 'all' : (this.gen.types.choice?'choice':this.gen.types.blank?'blank':'dual');
+      let qs = genQuestions(subj, this.gen.kps, type.diff||this.gen.difficulty, this.gen.count, typeFilter);
+      if(!qs.length){ this.help='该题型暂无更多可生成题目，请稍后再试'; return; }
+      let guard=0;
+      while(guard<30){
+        const dupIdx=qs.map((q,i)=>this.wasRecent(q.id,0)?i:-1).find(i=>i>=0);
+        if(dupIdx===undefined) break;
+        const rep=genQuestions(subj, [qs[dupIdx].kp], type.diff, 1, typeFilter)[0];
+        if(rep){ qs[dupIdx]=rep; }
+        guard++;
+      }
+      qs.forEach(q=>this.rememberQ(q.id));
+      this.genAims=this.gen.kps.slice(); this.genList=qs; this.genIndex=0; this.genType='smart';
+      this.curAnswer=null; this.dualSel=[]; this.answered=false; this.showSolution=false;
+      this.slowTip=''; this.qElapsed=0; this.startQTimer();
+      this.goKeep('answer');
+    },
     allKpsFor(subj){ return getKps(subj); },
     startGenerate(){
       const subj=this.gen.subject;
@@ -1497,6 +1592,7 @@ const app = createApp({
 try{ app.config.globalProperties.SUBJECTS = SUBJECTS; }catch(e){}
 try{ app.config.globalProperties.PAPER_STRUCT = PAPER_STRUCT; }catch(e){}
 try{ app.config.globalProperties.ICONS = ICONS; }catch(e){}
+try{ app.config.globalProperties.QTYPES = QTYPES; }catch(e){}
 // 全局错误兜底：任何页面渲染出错时回到首页，避免白屏
 app.config.errorHandler = function(err, instance, info){
   try{ console.error('[无限题]渲染错误:', err && err.message, info); }catch(e){}
