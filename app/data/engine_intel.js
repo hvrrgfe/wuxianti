@@ -223,6 +223,35 @@
     return I;
   }
 
+  // ============================================================
+  // 8. 出题质量评估（借 DeepSeek-R1 的"奖励模型+自一致性"思想，纯本地）
+  //     - 自一致性: 同一模板多次生成应稳定(参数抖动大/答案不稳定则降质)
+  //     - 干扰项迷惑度: 选项应"接近但唯一正确"，纯数字/重复项降质
+  //     - 解析完整度: 解析不能为空/过短
+  //    返回 0~1 质量分，可用于"淘汰差题,提升出题质量"
+  // ============================================================
+  function questionQuality(q, genSampler){
+    let score=1.0;
+    if(!q) return 0;
+    // 1) 基础完整性
+    if(!q.text || !String(q.text).trim()) score-=0.3;
+    if(q.answer===undefined || q.answer===null || String(q.answer).trim()==='') score-=0.3;
+    // 2) 答案与解析一致(有解析才好)
+    if(!q.solution || !q.solution.length || !String(q.solution[0]).trim()) score-=0.15;
+    // 3) 干扰项迷惑度(选择题): 选项应多样、答案唯一
+    if(q.options && q.options.length>=4){
+      const texts=q.options.map(function(o){return String(o).trim();});
+      const uniq=new Set(texts).size;
+      if(uniq<4) score-=0.2;                       // 选项重复
+      // 答案应存在于选项中
+      const ansStr=String(q.answer).trim();
+      if(texts.indexOf(ansStr)<0 && q.correct===undefined) score-=0.3; // blank选项不一致
+    }
+    // 4) 自一致性: 用采样器多次生成，检查题干是否稳定(参数随机导致的题干抖动)
+    if(genSampler){ let stable=0; for(let i=0;i<3;i++){ try{ const g=genSampler(); if(g&&g.text===q.text) stable++; }catch(e){} } if(stable<2) score-=0.15; }
+    return Math.max(0, Math.min(1, score));
+  }
+
   root.__EngineIntel = {
     irtAbility: irtAbility,
     irtAbility3PL: irtAbility3PL,
@@ -234,6 +263,7 @@
     seqPredict: seqPredict,
     correlate: correlate,
     deepAnalysis: deepAnalysis,
+    questionQuality: questionQuality,
     localAnalysis: localAnalysis,
     sigmoid: sigmoid
   };

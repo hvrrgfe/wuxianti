@@ -473,6 +473,10 @@ function genQuestions(subject, kps, difficulty, count, typeFilter){
     let q;
     try{ q = t.gen(); }catch(e){ q=null; }
     if(!q) continue;
+    // 出题质量自筛（借DeepSeek自一致/奖励思想：淘汰空答案/无效选项/无解析的差题）
+    if(typeof window!=='undefined' && window.__EngineIntel && window.__EngineIntel.questionQuality){
+      if(window.__EngineIntel.questionQuality(q, t.gen) < 0.5) continue;
+    }
     // 验算（数学题）
     let verified = true;
     if(subject==='math' && q.verifyId){
