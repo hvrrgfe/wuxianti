@@ -97,9 +97,9 @@ function gaokaoDays(){
 // ============ 版本号与更新日志 ============
 const APP_VERSION = "v54";
 const CHANGES = {
-  "v54": ["新增：AI 智能出题 + AI 学情分析（可配 GLM-4-Flash 免费版）", "AI页新增「AI智能出题」「AI学情分析」两个入口"],
+  "v54": ["新增：本地智能出题 + 学情分析（自研引擎，无API离线）", "AI页新增「智能出题」「学情分析」两个入口"],
   "v53": ["学情分析升级：采用贝叶斯知识追踪(BKT)，更准确地判断你是否真正掌握，区分蒙对与失误"],
-  "v52": ["AI 出题优化：提示词针对性增强，GLM 生成更规范的选择题", "支持环境变量 GLM_API_KEY / ZHIPU_API_KEY"],
+  "v52": ["出题优化：本地引擎智能选题", "本地智能出题，完全离线"],
   "v50": ["全科模板扩充至 352 个：9 科知识点体系全部补齐，覆盖高考核心考点"],
   "v47": ["补齐理化生高中核心考点（30个）：自由落体/圆周/万有引力/电化学/遗传等"],
   "v44": ["修复题目重复问题：现在出题会更丰富、不重复"],
@@ -167,6 +167,8 @@ function getTemplates(subject){
   if(subject==='math' && window.__PREMIUM_PZ && window.__PREMIUM_PZ.length){ prem = (prem||[]).concat(window.__PREMIUM_PZ); }
   // 数学叠加高中深化模板
   if(subject==='math' && window.__PREMIUM_MATH_HS && window.__PREMIUM_MATH_HS.length){ prem = (prem||[]).concat(window.__PREMIUM_MATH_HS); }
+  // 数学叠加变式题库
+  if(subject==='math' && window.__PREMIUM_MATH_BANK && window.__PREMIUM_MATH_BANK.length){ prem = (prem||[]).concat(window.__PREMIUM_MATH_BANK); }
   // 语文叠加高中深化模板
   if(subject==='chinese' && window.__PREMIUM_CHINESE_HS && window.__PREMIUM_CHINESE_HS.length){ prem = (prem||[]).concat(window.__PREMIUM_CHINESE_HS); }
   // 英语叠加高中深化模板
@@ -473,7 +475,7 @@ function genQuestions(subject, kps, difficulty, count, typeFilter){
     let q;
     try{ q = t.gen(); }catch(e){ q=null; }
     if(!q) continue;
-    // 出题质量自筛（借DeepSeek自一致/奖励思想：淘汰空答案/无效选项/无解析的差题）
+    // 出题质量自筛（借深度学习"自一致性/奖励"思想：淘汰空答案/无效选项/无解析的差题）
     if(typeof window!=='undefined' && window.__EngineIntel && window.__EngineIntel.questionQuality){
       if(window.__EngineIntel.questionQuality(q, t.gen) < 0.5) continue;
     }
@@ -1082,7 +1084,7 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
       <div class="mm-tab" :class="{active:aiTab==='analyze'}" @click="aiTab='analyze'">AI学情分析</div>
       <div class="mm-tab" :class="{active:aiTab==='suggest'}" @click="aiTab='suggest'">建议</div>
     </div>
-    <!-- AI智能出题（专属 GLM-4-Flash 优化：结构化生成选择题） -->
+    <!-- 智能出题（自研本地引擎） -->
     <div v-if="aiTab==='gen'">
       <div class="card">
         <div style="font-size:13px;color:var(--text2);margin-bottom:8px">AI 智能出题 · 按你的薄弱点生成</div>
@@ -1140,22 +1142,17 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
       <span @click="back()" style="font-size:18px;margin-right:12px;cursor:pointer">‹</span><b style="font-size:16px">我的</b>
     </div>
     <div class="card">
-      <div class="card-title">AI 参数设置（自行导入 API）</div>
-      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">选择供应商 · 填入 API Key 即可使用 AI 讲解。支持智谱GLM免费版。</div>
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
-        <div v-for="p in providerOptions()" :key="p.id" class="mm-tab" :class="{active:aiConfig.provider===p.id}" style="text-align:center;padding:10px 4px;font-size:12px" @click="setProvider(p)">{{p.name}}</div>
+      <div class="card-title">🧠 本地智能引擎（无 API · 完全离线）</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7">
+        本应用使用自研本地智能引擎，无需任何 API·Key，数据不出本机：
       </div>
-      <div style="margin-top:12px">
-        <div style="font-size:13px;color:var(--text2);margin-bottom:6px">API Key</div>
-        <input v-model="aiConfig.key" type="password" placeholder="sk-..." style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;background:var(--card);color:var(--text)">
+      <div style="font-size:12px;color:var(--text);line-height:1.8;margin-top:6px">
+        · 📈 IRT 难度自适应：按你的能力动态匹配题目难度<br>
+        · 🧩 知识图谱根因：自动定位薄弱点的前置知识<br>
+        · 📊 深度学情分析：能力 + 趋势 + 薄弱 + 关联诊断<br>
+        · ✔ 出题质量自筛：只出高质量稳定题<br>
+        · 💬 AI 讲解：基于知识点解析库 + 错题自动分析
       </div>
-      <div style="margin-top:10px">
-        <div style="font-size:13px;color:var(--text2);margin-bottom:6px">模型（默认已按供应商填写）</div>
-        <input v-model="aiConfig.model" placeholder="glm-4.7-flash" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;background:var(--card);color:var(--text)">
-      </div>
-      <button class="btn-ghost" style="width:100%;margin-top:12px" @click="testAI()">测试连接 {{aiTestState==='testing'?'…':''}} {{aiTestState==='ok'?'✓ 连接成功':''}}</button>
-      <div v-if="aiTestState&&aiTestState.indexOf('fail')===0" style="color:var(--danger);font-size:12px;margin-top:6px">{{aiTestState}}</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:8px">提示：Key 保存在浏览器本地，也可通过本机 server 服务端持有（环境变量 AI_API_KEY）。</div>
     </div>
     <div class="card">
       <div class="card-title">关于本应用</div>
@@ -1395,11 +1392,10 @@ const app = createApp({
       zhentiSub:'physics', zhentiIdx:0, zhentiAns:'', zhentiChecked:false,
       misFilter:{ subject:'all' }, misMode:'list', misRedoQs:[], misRedoIndex:0, misRedoAns:{}, misRedoSolved:{right:0,wrong:0}, misRedoCav:null, misRedoSel:[], misRedoR:false,
       schoolSub:'math', graphSub:'math',
-      aiMsgs: store.get('wx_ai_msgs', [ {role:'ai', content:'你好！我是针对福建高考的出题辅助AI。你可以问我某个知识点，或让我讲解你做错的题目。'} ]),
-      aiInput:'', aiBusy:false,
-      aiConfig: store.get('wx_ai', { provider:'zhipu', model:'glm-4.7-flash', key:'', baseUrl:'' }),
+      aiMsgs: store.get('wx_ai_msgs', [ {role:'ai', content:'你好！我是本机智能出题助手（本地引擎·完全离线）。你可以问知识点、要我分析薄弱点，或让我讲错题。'} ]),
+      aiInput:'', aiBusy:false, latestQ:null,
       aiGenSub:'math', aiGenQ:null, aiGenAns:'', aiAnalysis:'',
-      aiTestState:'', aiTab:'chat', aiContext:'',
+      aiTab:'chat', aiContext:'',
       // ===== 新功能状态 =====
       onboarding: store.get('wx_onboard', 0),      // 0已完成,1,2,3引导步进
       showUpdate:false, updateLog:[], seenVer:store.get('wx_seenVer',''),
@@ -1440,7 +1436,7 @@ const app = createApp({
         { q:'题目会重复吗？', a:'不会。每次都是参数化引擎随机生成的全新题目，且系统会避免近7天内出过同模板同参数的题。' },
         { q:'答案一定正确吗？', a:'是。每道题的答案都经过内置的验算器（方程求解/分数化简/勾股/验算器等）校验，100%正确，做错是自己的理解问题而非题目问题。' },
         { q:'不用 AI 能用吗？', a:'完全可以。出题/答题/判分/错题/学情/图谱全部离线免费。AI 讲解在未配置 Key 时自动展示题目内置解析。' },
-        { q:'怎么配置 AI 讲解？', a:'到「我的 → AI参数设置」，推荐选智谱GLM（免费），填入 API Key 即可使用真人式讲解与答疑。' },
+        { q:'AI 讲解 / 智能出题是怎么实现的？', a:'全部使用自研本地智能引擎（IRT难度自适应、贝叶斯知识追踪、知识图谱根因推理），完全离线、无需任何 API·Key，数据不出本机。' },
         { q:'掌握度和间隔复习是怎么算的？', a:'掌握度由正确率+连续答对+近期表现加权得出；≥80% 进入间隔复习（3天→7天→15天→30天递进，答对翻倍）。' },
         { q:'数据存在哪里？', a:'全部保存在你浏览器的本地存储 localStorage 中，离线可用，不经过任何服务器，隐私安全。' },
         { q:'如何导出错题或打印试卷？', a:'错题本可导出 CSV 或 PDF；生成的试卷可打印/导出 PDF（含参考答案页）。学情报告也可导 PDF。' },
@@ -2015,39 +2011,7 @@ const app = createApp({
         alert('数据已清除');
       }
     },
-    // ========== AI接口（自行导入API）==========
-    providerOptions(){ return [ {id:'zhipu',name:'智谱GLM(免费)',host:'https://open.bigmodel.cn/api/paas/v4',model:'glm-4.7-flash'}, {id:'deepseek',name:'DeepSeek',host:'https://api.deepseek.com/v1',model:'deepseek-chat'}, {id:'qwen',name:'通义千问',host:'https://dashscope.aliyuncs.com/compatible-mode/v1',model:'qwen-plus'}, {id:'kimi',name:'Kimi(Moonshot)',host:'https://api.moonshot.cn/v1',model:'kimi-k2'}, {id:'openai',name:'OpenAI',host:'https://api.openai.com/v1',model:'gpt-4o-mini'}, {id:'custom',name:'自定义(OpenAI兼容)',host:'',model:''} ]; },
-    setProvider(p){ this.aiConfig.provider=p.id; this.aiConfig.model=p.model; this.aiConfig.baseUrl=p.host; this.aiTestState=''; },
-    async testAI(){ this.aiTestState='testing'; try{ await this.callLLM('只回复两个字：成功'); this.aiTestState='ok'; }catch(e){ this.aiTestState='fail: '+e.message; } },
-    // 针对 GLM-4-Flash 等轻量模型的优化指令（弥补弱模型在"复杂推理/长上下文"上的短板）
-    buildSysPrompt(){
-      let s='你是"无限题"的福建高考辅导老师。请遵循以下规则：\n';
-      s+='1. 用中文，语言简洁、直接，避免空话套话。\n';
-      s+='2. 讲题务必"分步骤"，用①②③列出关键推导，最后给出结论。\n';
-      s+='3. 计算必须自己重新验算，确认无误再给出，绝不编造数值。\n';
-      s+='4. 若题目已提供"参考解析"，直接基于它讲解，不要另起一套。\n';
-      s+='5. 回答尽量控制在 200~400 字，抓重点，符合福建高考(新课标Ⅰ卷/福建卷)风格。\n';
-      // 注入学情摘要，帮助针对性分析
-      const weak=this.weakKp;
-      if(weak.length){ s+='6. 该学生的薄弱知识点：'+weak.map(w=>w.key+'('+Math.round(w.mastery)+'%)').join('、')+'，可结合讲解提醒相关易错点。\n'; }
-      s+='\n注意：你是轻量模型，遇到不会的不要硬编，直接说"这道题超出了我的讲解范围，请用答题页内置解析或提问更细的问题"。';
-      return s;
-    },
-    async callLLM(prompt, msgs){
-      const cfg=this.aiConfig; const provider=cfg.provider||'zhipu';
-      const userMsgs = msgs || [ {role:'system',content:this.buildSysPrompt()}, {role:'user',content:prompt} ];
-      const body={ provider, model:cfg.model, apiKey:cfg.key, messages:userMsgs };
-      try{
-        const res=await fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-        if(res.ok){ const j=await res.json(); if(j.choices&&j.choices[0]) return j.choices[0].message.content; }
-      }catch(e){}
-      const prov=this.providerOptions().find(p=>p.id===provider); const host=(cfg.baseUrl||(prov?prov.host:''))||'';
-      const url=host.replace(/\/$/,'')+'/chat/completions';
-      const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(cfg.key||'')},body:JSON.stringify({model:cfg.model,messages:userMsgs})});
-      if(!r.ok) throw new Error('HTTP '+r.status);
-      const j=await r.json(); return j.choices&&j.choices[0]?j.choices[0].message.content:(j.error||'未返回');
-    },
-    // ===== 专属 GLM-4-Flash 优化：AI 智能出题（结构化生成选择题） =====
+    // ===== 本地智能引擎（无任何外部API） =====
     async aiAskQuestion(){
       if(this.aiBusy) return;
       const subj=this.aiGenSub;
@@ -2081,13 +2045,6 @@ const app = createApp({
       this.gen.subject=subj; this.gen.kps=kps.slice(0,3); this.gen.count=1;
       this.startGenerate();
     },
-    // 解析 GLM 输出的题目（容忍多余字符/换行/代码块）
-    _parseAIQuestion(raw, subj){
-      let t=String(raw||'').replace(/```json|```/g,'').trim();
-      const s=t.indexOf('{'), e=t.lastIndexOf('}');
-      if(s>=0&&e>s){ try{ const o=JSON.parse(t.slice(s,e+1)); if(o.text&&o.options&&o.options.length>=4){ return {text:o.text, options:o.options.slice(0,4), answer:(o.answer||'').toUpperCase().trim()[0]||'A', analysis:o.analysis||'', checkOK:false, checkRight:false};} }catch(err){} }
-      return null;
-    },
     aiGenCheck(){
       const q=this.aiGenQ; if(!q||q.answer===undefined) return;
       const letters=['A','B','C','D'];
@@ -2109,54 +2066,62 @@ const app = createApp({
           if(d.root.length) lines.push('【可能根因·先补前置】'+d.root.slice(0,3).join('、'));
           if(d.risky.length) lines.push('【关联待巩固】'+d.risky.slice(0,4).join('、'));
           lines.push('【建议】按"前置→主考点→错题重做"顺序提升；得分点注意每空验算。');
-          this.aiAnalysis=lines.join('\n'); return;
+          this.aiAnalysis=lines.join('\n'); this.aiBusy=false; this.aiTab='analyze'; return;
         }catch(e){}
-      }
-      if(I.localAnalysis){
-        try{ this.aiAnalysis = I.localAnalysis(this.records.slice(-80), this.mastery, this.mistakes); return; }catch(e){}
       }
       const subj=this.aiGenSub, done=this.records.filter(r=>r.subj===subj).length, mis=this.mistakes.filter(m=>m.subject===subj).length, weak=this.weakKp.slice(0,4).map(w=>w.key+'('+Math.round(w.mastery)+'%)').join('、');
       this.aiAnalysis='· 累计做题 '+this.records.length+' 道，其中「'+SUBJECTS[subj].name+'」'+done+' 道\n· '+SUBJECTS[subj].name+'错题 '+mis+' 道\n· 薄弱点：'+(weak||'暂无');
+      this.aiBusy=false; this.aiTab='analyze';
     },
     sendMsg(){
       const text=this.aiInput.trim(); if(!text||this.aiBusy) return;
-      // 未配置 API Key：本地降级回复，不调 AI，不报错
-      if(!this.aiConfig.key){
-        this.aiMsgs.push({role:'user',content:text});
-        this.aiMsgs.push({role:'ai',content:'【本地助手提示】尚未配置 AI 接口，我暂时无法进行联网问答。\n\n你可以：\n① 到「我的 → AI参数设置」填入 API Key（推荐智谱GLM免费版 glm-4.7-flash，无需付费）；\n② 使用首页「智能出题」生成题目配合内置解析练习；\n③ 在答题页点「AI讲解」查看本题标准解析（完整免费离线）。'});
-        store.set('wx_ai_msgs',this.aiMsgs.slice(-30)); this.aiInput='';
-        return;
+      this.aiMsgs.push({role:'user',content:text}); 
+      // 本地引擎解答（无API）：结合知识点解析库/错题/学情生成
+      const EI=(typeof window!=='undefined'&&window.__EngineIntel)||{};
+      let reply;
+      if(text.indexOf('讲解')>=0 || text.indexOf('解析')>=0){
+        reply = this._localExplain(text, this.latestQ||this.currentQ(), EI);
+      } else if(text.indexOf('薄弱')>=0 || text.indexOf('学情')>=0 || text.indexOf('建议')>=0){
+        try{ const d=EI.deepAnalysis?EI.deepAnalysis(this.records.slice(-80), this.mastery):null;
+          reply = d? ('【本地学情诊断】\n'+'能力θ≈'+d.ability.toFixed(2)+'·趋势'+Math.round(d.trend*100)+'%\n'+(d.weak.length?('薄弱：'+d.weak.slice(0,3).map(w=>w.key+'('+Math.round(w.m)+'%)').join('、')):'暂无薄弱')+(d.root.length?('\n需先补前置：'+d.root.slice(0,2).join('、')):'') ) : '暂无足够数据，先刷几题吧。';
+        }catch(e){ reply='暂无足够数据，先刷几题吧。'; }
+      } else {
+        reply = this._localKnow(text, EI);
       }
-      this.aiMsgs.push({role:'user',content:text}); this.aiInput=''; store.set('wx_ai_msgs',this.aiMsgs.slice(-30)); this.aiBusy=true;
-      let ctx=''; try{ const q=this.currentQ(); if(q&&this.aiTab==='chat') ctx='\n【辅助】当前题目：'+q.text+'\n答案：'+q.answer+'\n请围绕此题讲解或延伸。'; }catch(e){}
-      this.callLLM(text+ctx).then(reply=>{ this.aiMsgs.push({role:'ai',content:reply}); store.set('wx_ai_msgs',this.aiMsgs.slice(-30)); this.aiBusy=false; }).catch(err=>{ this.aiMsgs.push({role:'ai',content:'（AI调用失败：'+err.message+'，请到 我的→AI设置 配置API Key）'}); this.aiBusy=false; });
+      this.aiMsgs.push({role:'ai',content:reply}); store.set('wx_ai_msgs',this.aiMsgs.slice(-30)); this.aiInput='';
+    },
+    // 本地讲解：优先当前题内置解析+知识点讲解
+    _localExplain(text, q, EI){
+      let msg='【本地智能讲解】\n';
+      if(q){ msg+='题目：'+q.text+'\n正确答案：'+q.answer+'\n'; if(q.solution&&q.solution.length) msg+='步骤：\n'+q.solution.map((s,i)=>(i+1)+'. '+s).join('\n'); }
+      const kp=q&&q.kp; if(kp&&KNOWLEDGE&&KNOWLEDGE[kp]) msg+='\n【考点】'+KNOWLEDGE[kp].keypoint+((KNOWLEDGE[kp].method)?('\n【套路】'+KNOWLEDGE[kp].method):'');
+      if(!q) msg+='请先在答题页选中一道题，再点「AI讲解」查看该题分步解析。';
+      return msg;
+    },
+    _localKnow(text, EI){
+      if(KNOWLEDGE){ for(const k in KNOWLEDGE){ if(text.indexOf(k)>=0){ const x=KNOWLEDGE[k]; return '【'+k+'】\n📖 '+x.keypoint+((x.method)?('\n💡 '+x.method):'')+((x.trap)?('\n⚠️ '+x.trap):''); } } }
+      return '【本地智能答疑】\n我能基于本地知识库讲解知识点（如：输入"讲讲导数"）、分析薄弱点（"我的薄弱点"）、讲解错题。由于完全离线，复杂开放问题由内置解题库回答。';
     },
     askExplain(){
       let q=null; try{ q=this.currentQ(); }catch(e){}
       if(!q){ this.go('ai'); return; }
-      this.aiTab='chat';
-      // 未配置 API Key：直接展示引擎内置解析（无需 API，完全离线）
-      if(!this.aiConfig.key){
-        let msg='【本地解析】（未配置 AI，展示本题内置分步解析）\n\n题目：'+q.text+'\n\n正确答案：'+q.answer;
-        if(q.solution&&q.solution.length){ msg+='\n\n解题步骤：\n'+q.solution.map((s,i)=>(i+1)+'. '+s).join('\n'); }
-        msg+='\n\n【提示】到"我的 → AI参数设置"填入 API Key（推荐智谱GLM免费版），可获得更详细的真人式讲解。';
-        this.aiMsgs.push({role:'ai',content:msg}); store.set('wx_ai_msgs',this.aiMsgs.slice(-30));
-        this.go('ai');
-        return;
-      }
-      const prompt='请详细讲解这道题：\n'+q.text+'\n正确答案：'+q.answer+(q.solution&&q.solution.length?('\n参考解析：'+q.solution.join('；')):'');
-      this.aiMsgs.push({role:'user',content:'讲解题目：'+q.text.slice(0,40)+'…'}); store.set('wx_ai_msgs',this.aiMsgs.slice(-30)); this.aiBusy=true;
-      this.callLLM(prompt).then(r=>{ this.aiMsgs.push({role:'ai',content:r}); store.set('wx_ai_msgs',this.aiMsgs.slice(-30)); this.aiBusy=false; }).catch(()=>{ this.aiMsgs.push({role:'ai',content:'（AI调用失败，请配置API）'}); this.aiBusy=false; });
+      this.latestQ=q; this.aiTab='chat';
+      const msg=this._localExplain('讲解', q, (window.__EngineIntel||{}));
+      this.aiMsgs.push({role:'user',content:'讲解题目：'+q.text.slice(0,32)+'…'}); 
+      this.aiMsgs.push({role:'ai',content:msg}); store.set('wx_ai_msgs',this.aiMsgs.slice(-30));
+      this.go('ai');
     },
-    clearAi(){ this.aiMsgs=[{role:'ai',content:'对话已清空'}]; store.set('wx_ai_msgs',this.aiMsgs); },
-    aiPlaceholder(){ return this.aiConfig.key? '输入你想问的问题…' : '先到"我的→AI设置"配置API Key'; },
+    clearAi(){ this.aiMsgs=[{role:'ai',content:'对话已清空（本地智能引擎，完全离线）'}]; store.set('wx_ai_msgs',this.aiMsgs); },
+    aiPlaceholder(){ return '输入想问的（本地智能引擎）…'; },
     diffTxt(){ return this.gen.difficulty==='easy'?'简单':this.gen.difficulty==='hard'?'困难':'自适应'; },
     startReview(kp){ this.gen.subject=this.graphSub; this.gen.kps=[kp]; this.genType='review'; this.startGenerate(); },
     askMistake(m){
       this.aiTab='chat';
-      this.aiMsgs.push({role:'user',content:'请讲解我的错题：'+m.text+'\n正确答案：'+m.answer}); store.set('wx_ai_msgs',this.aiMsgs.slice(-30)); this.aiBusy=true;
-      const prompt='请详细讲解这道错题：\n'+m.text+'\n正确答案：'+m.answer+(m.solution&&m.solution.length?('\n参考解析：'+m.solution.join('；')):'');
-      this.callLLM(prompt).then(r=>{ this.aiMsgs.push({role:'ai',content:r}); store.set('wx_ai_msgs',this.aiMsgs.slice(-30)); this.aiBusy=false; }).catch(()=>{ this.aiMsgs.push({role:'ai',content:'（AI调用失败，请配置API）'}); this.aiBusy=false; });
+      this.aiMsgs.push({role:'user',content:'请讲解我的错题：'+m.text}); 
+      let msg='【本地错题讲解】\n题目：'+m.text+'\n正确答案：'+m.answer;
+      if(m.kp&&KNOWLEDGE&&KNOWLEDGE[m.kp]) msg+='\n【考点】'+KNOWLEDGE[m.kp].keypoint+((KNOWLEDGE[m.kp].method)?('\n【套路】'+KNOWLEDGE[m.kp].method):'');
+      if(m.solution&&m.solution.length) msg+='\n【解析】'+m.solution.join('；');
+      this.aiMsgs.push({role:'ai',content:msg}); store.set('wx_ai_msgs',this.aiMsgs.slice(-30)); this.aiBusy=false;
       this.go('ai');
     },
     // ================= 新手引导 =================
@@ -2289,13 +2254,11 @@ const app = createApp({
   mounted(){
     // 首次访问自动进入新手引导
     try{ if(!localStorage.getItem('wx_hasSeen')){ this.page='onboard'; this.onboarding=1; store.set('wx_onboard',1); } }catch(e){}
-    // 版本升级提示：有新版本则记录日志并展示
+    // 更新日志弹窗：每次进入首页都展示（用户要求"每次都要有"）
     try{
-      const seen=store.get('wx_seenVer','');
-      if(seen!==APP_VERSION){
-        this.updateLog = pendingChanges(seen);
-        if(this.updateLog.length && this.onboarding===0){ this.showUpdate=true; }
-        store.set('wx_seenVer', APP_VERSION);
+      if(this.onboarding===0){
+        this.updateLog = pendingChanges('');
+        if(this.updateLog.length){ this.showUpdate=true; }
       }
     }catch(e){}
   }
