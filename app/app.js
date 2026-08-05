@@ -1559,7 +1559,16 @@ const app = createApp({
         kps = this.smartPickKps(subj);
       }
       const typeFilter = this.gen.types.choice&&this.gen.types.blank&&this.gen.types.dual ? 'all' : (this.gen.types.choice?'choice':this.gen.types.blank?'blank' : this.gen.types.dual?'dual':'all');
-      let qs = genQuestions(subj, kps, this.gen.difficulty, this.gen.count, typeFilter);
+      // 自研IRT引擎：难度"自适应"时，按学生能力动态推荐难度(对标深度自适应方法)
+      let effDiff = this.gen.difficulty;
+      if(effDiff==='auto'){
+        const EI=(typeof window!=='undefined'&&window.__EngineIntel);
+        if(EI && EI.irtAbility && this.records.length>=3){
+          const theta=EI.irtAbility(this.records.slice(-40).map(r=>({correct:r.correct?1:0,diff:r.diff||2})));
+          effDiff = EI.recommendDiff(theta);   // 1-5
+        } else effDiff='auto';
+      }
+      let qs = genQuestions(subj, kps, effDiff, this.gen.count, typeFilter);
       // 重复避免：近N天内出过同模板+同参数哈希的题，重新生成替身（最多重试30次）
       if(qs.length){
         let guard=0;
@@ -2037,19 +2046,36 @@ const app = createApp({
     // ===== 专属 GLM-4-Flash 优化：AI 智能出题（结构化生成选择题） =====
     async aiAskQuestion(){
       if(this.aiBusy) return;
-      if(!this.aiConfig.key){ this.aiGenQ={ text:'【未配置 AI】请到「我的 → AI参数设置」填入智谱GLM免费版 API Key 后，即可用 AI 按你的薄弱点智能出题。', options:[], answer:'', analysis:'' }; return; }
       const subj=this.aiGenSub;
-      // 针对 GLM-4-Flash 的极简结构化提示词（弱模型也易输出）
-      const sys='你是一名福建高考出题老师。请生成一道【选择题】（有真实4个备选答案）。必须严格按下面JSON格式输出，不要多余文字、不要代码块标记：\n{"text":"题目题干(中文,高考风格,含算式用文字描述)","options":["具体选项内容1","具体选项内容2","具体选项内容3","具体选项内容4"],"answer":"A","analysis":"答案解析(2-3句)"}\n要求：1.options里四项必须是具体、互斥、贴近的答案内容(不是A/B/C/D字母)；2.答案唯一；3.选项数字或表达式用普通文本(如 "2","√3","1/2")。';
-      const prompt='请为「'+SUBJECTS[subj].name+'」出一道选择题，风格贴近福建/新课标高考。当前科目可选考点：'+getKps(subj).slice(0,8).join('、')+'；若已知该学生薄弱点请优先此方向：'+this.weakKp.map(w=>w.key).slice(0,3).join('、');
-      this.aiBusy=true;
-      try{
-        const raw=await this.callLLM(prompt,[{role:'system',content:sys},{role:'user',content:prompt}]);
-        const parsed=this._parseAIQuestion(raw, subj);
-        if(parsed){ this.aiGenQ=parsed; this.aiGenAns=''; this.aiGenQ.checkOK=false; }
-        else { this.aiGenQ={ text:'（AI 返回未解析成题目，可能格式异常，请重试）', options:[], answer:'', analysis:'' }; }
-      }catch(e){ this.aiGenQ={ text:'（AI 出题失败，请检查 API Key 或稍后重试）', options:[], answer:'', analysis:'' }; }
-      this.aiBusy=false;
+      // 本地智能出题：用自研引擎(知识图谱根因+IRT难度)从本地模板库智能选题，完全离线
+      const EI=(typeof window!=='undefined'&&window.__EngineIntel)||{};
+      let kps=getKps(subj).slice();
+      // 1) 知识图谱根因：若薄弱点有前置弱，先选前置(补根因)
+      if(EI.KP_GRAPH && this.weakKp.length){
+        const root=[];
+        this.weakKp.slice(0,3).forEach(function(w){ (EI.inferRootCause?EI.inferRootCause(w.key,{}):[]).forEach(function(d){ if(root.indexOf(d.kp)<0)root.push(d.kp); }); });
+        const validRoot=root.filter(function(k){return kps.indexOf(k)>=0;});
+        if(validRoot.length){ kps=validRoot.slice(0,2).concat(this.weakKp.map(w=>w.key)); }
+      }
+      // 2) IRT难度自适应
+      let effDiff='auto';
+      if(EI.irtAbility && this.records.length>=3){
+        effDiff=EI.recommendDiff(EI.irtAbility(this.records.slice(-40).map(r=>({correct:r.correct?1:0,diff:r.diff||2}))));
+      }
+      // 3) 从本地模板生成题目
+      const choiceOk=(effDiff==='auto'||effDiff===2);
+      const qs=genQuestions(subj, kps.slice(0,5), choiceOk?'auto':effDiff, 1, 'choice');
+      const q=qs[0];
+      if(q && q.options && q.options.length){
+        const letters='ABCD';
+        const ansIdx=q.correct>=0?q.correct:q.options.indexOf(q.answer);
+        this.aiGenQ={ text:q.text, options:q.options.slice(0,4), answer:letters[ansIdx]||'A', analysis:(q.solution&&q.solution[0])||q.answer, checkOK:false, checkRight:false };
+        this.aiGenAns='';
+        return;
+      }
+      // 4) 兜底：直接进入答题页练习
+      this.gen.subject=subj; this.gen.kps=kps.slice(0,3); this.gen.count=1;
+      this.startGenerate();
     },
     // 解析 GLM 输出的题目（容忍多余字符/换行/代码块）
     _parseAIQuestion(raw, subj){
@@ -2064,22 +2090,15 @@ const app = createApp({
       q.checkRight = letters[this.aiGenAns]===String(q.answer).trim().toUpperCase();
       q.checkOK=true;
     },
-    // ===== AI 学情诊断与个性计划（GLM-4-Flash 优化） =====
-    async aiAnalyze(){
+    // ===== 本地智能学情分析（自研引擎，无API离线） =====
+    aiAnalyze(){
       if(this.aiBusy) return;
-      const subj=this.aiGenSub;
-      // 汇总学情（本地统计→GLM诊断）
-      const total=this.records.length, done=this.records.filter(r=>r.subj===subj).length;
-      const weak=this.weakKp.slice(0,4).map(w=>w.key+'('+Math.round(w.mastery)+'%)').join('、');
-      const mistakes=this.mistakes.filter(m=>m.subject===subj).length;
-      const wrongKp={}; this.mistakes.filter(m=>m.subject===subj).forEach(m=>wrongKp[m.kp]=(wrongKp[m.kp]||0)+1);
-      const topWrong=Object.keys(wrongKp).sort((a,b)=>wrongKp[b]-wrongKp[a]).slice(0,4).join('、');
-      if(!this.aiConfig.key){ this.aiAnalysis='【未配置 AI】请到「我的 → AI参数设置」填入智谱GLM免费版 API Key（glm-4.7-flash），即可生成学情诊断和个性化提分计划。\n\n当前本地学情摘要：\n· 累计做题 '+total+' 道，其中「'+SUBJECTS[subj].name+'」'+done+' 道\n· '+SUBJECTS[subj].name+'错题 '+mistakes+' 道\n· 薄弱点：'+(weak||'暂无')+((topWrong)?('\n· 常错知识点：'+topWrong):''); return; }
-      const sys='你是一名福建高考提分教练。请用中文、简洁地输出学情诊断（200~350字），包含：①整体掌握情况 ②主要薄弱知识点及原因 ③针对性提分建议(具体到练哪些知识点、用什么方法) ④下一周学习计划要点。语气鼓励、实用。';
-      const prompt='学生学情摘要：累计做题'+total+'道；'+SUBJECTS[subj].name+'做题'+done+'道、错题'+mistakes+'道；薄弱知识点：'+weak+';常错：'+topWrong;
-      this.aiBusy=true;
-      try{ this.aiAnalysis=await this.callLLM(prompt,[{role:'system',content:sys},{role:'user',content:prompt}]); }catch(e){ this.aiAnalysis='（AI 学情分析失败，请检查 API Key）'; }
-      this.aiBusy=false;
+      const I=(typeof window!=='undefined'&&window.__EngineIntel)||{};
+      if(I.localAnalysis){
+        try{ this.aiAnalysis = I.localAnalysis(this.records.slice(-80), this.mastery, this.mistakes); return; }catch(e){}
+      }
+      const subj=this.aiGenSub, done=this.records.filter(r=>r.subj===subj).length, mis=this.mistakes.filter(m=>m.subject===subj).length, weak=this.weakKp.slice(0,4).map(w=>w.key+'('+Math.round(w.mastery)+'%)').join('、');
+      this.aiAnalysis='· 累计做题 '+this.records.length+' 道，其中「'+SUBJECTS[subj].name+'」'+done+' 道\n· '+SUBJECTS[subj].name+'错题 '+mis+' 道\n· 薄弱点：'+(weak||'暂无');
     },
     sendMsg(){
       const text=this.aiInput.trim(); if(!text||this.aiBusy) return;
