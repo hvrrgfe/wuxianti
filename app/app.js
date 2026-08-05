@@ -185,6 +185,8 @@ function getTemplates(subject){
   if(subject==='physics' && window.__PREMIUM_PHYSICS_HS && window.__PREMIUM_PHYSICS_HS.length){ prem = (prem||[]).concat(window.__PREMIUM_PHYSICS_HS); }
   // 物理叠加变式题库
   if(subject==='physics' && window.__PREMIUM_PHYSICS_BANK && window.__PREMIUM_PHYSICS_BANK.length){ prem = (prem||[]).concat(window.__PREMIUM_PHYSICS_BANK); }
+  // 物理叠加百库(1640)
+  if(subject==='physics' && window.__PHYSICS_BIG && window.__PHYSICS_BIG.length){ prem = (prem||[]).concat(window.__PHYSICS_BIG); }
   // 化学叠加高中核心模板
   if(subject==='chemistry' && window.__PREMIUM_CHEMISTRY_HS && window.__PREMIUM_CHEMISTRY_HS.length){ prem = (prem||[]).concat(window.__PREMIUM_CHEMISTRY_HS); }
   // 生物叠加高中核心模板
