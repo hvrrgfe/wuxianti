@@ -2094,6 +2094,20 @@ const app = createApp({
     aiAnalyze(){
       if(this.aiBusy) return;
       const I=(typeof window!=='undefined'&&window.__EngineIntel)||{};
+      if(I.deepAnalysis){
+        try{
+          const d=I.deepAnalysis(this.records.slice(-80), this.mastery);
+          const lines=[
+            '【能力评估】当前估计能力 θ≈'+d.ability.toFixed(2)+'（-3~3，0为平均）· 建议刷 '+I.recommendDiff(d.ability)+' 级难度',
+            '【掌握趋势】近期答题正确率趋势 '+Math.round(d.trend*100)+'%'+(d.trend<=0.45?' · 有下滑，建议巩固基础':d.trend>=0.65?' · 状态上扬':''),
+            '【薄弱知识点】'+(d.weak.length?d.weak.slice(0,4).map(w=>w.key+'('+Math.round(w.m)+'%)').join('、'):'暂无')
+          ];
+          if(d.root.length) lines.push('【可能根因·先补前置】'+d.root.slice(0,3).join('、'));
+          if(d.risky.length) lines.push('【关联待巩固】'+d.risky.slice(0,4).join('、'));
+          lines.push('【建议】按"前置→主考点→错题重做"顺序提升；得分点注意每空验算。');
+          this.aiAnalysis=lines.join('\n'); return;
+        }catch(e){}
+      }
       if(I.localAnalysis){
         try{ this.aiAnalysis = I.localAnalysis(this.records.slice(-80), this.mastery, this.mistakes); return; }catch(e){}
       }

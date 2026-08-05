@@ -136,13 +136,104 @@
     return lines.join('\n');
   }
 
+  // ============================================================
+  // 4. DKT式序列预测（轻量实现深度学习"序列到序列"思想，纯本地）
+  //    借: DKT(correctness sequence → skill mastery state)思路:
+  //    用"滑动窗口 + 遗忘曲线 + 近因加权"从最近答题序列预测下一题掌握/正确率
+  // ============================================================
+  function seqPredict(records, windowSize, forgetHalf) {
+    // records: 按时间顺序 [{correct, sameKp?}] 最近做题序列
+    if(!records || !records.length) return 0.5;
+    var ws = windowSize||12, half = forgetHalf||20;   // 半衰期(题数)
+    const recent = records.slice(-ws);
+    let weightSum = 0, corrSum = 0;
+    for(let i=0;i<recent.length;i++){
+      const age = recent.length - 1 - i;               // 距今题数
+      const w = Math.pow(0.5, age/half);              // 遗忘曲线权重(新旧加权)
+      weightSum += w; corrSum += w*(recent[i].correct?1:0);
+    }
+    return weightSum? corrSum/weightSum : 0.5;         // 预测正确率(加权平均)
+  }
+
+  // ============================================================
+  // 5. 知识点关联矩阵（借 DKT/知识图谱"相邻技能互相影响"思想）
+  //    答对某"主干"知识点，提升其相关(依赖它的)知识点；答错则暗示相关也需巩固
+  // ============================================================
+  function correlate(kp, masteryMap, correct){
+    // 返回与kp相关、且受本次作答影响的知识点(含方向+强度)
+    const out=[];
+    for(const other in (KP_GRAPH||{})){
+      if(other===kp) continue;
+      const deps = KP_GRAPH[other]||[];
+      if(deps.indexOf(kp)>=0){          // other 依赖 kp: kp扎实则other受益
+        out.push({kp:other, dir: correct?1:-1, dep:true});
+      }
+    }
+    const myDeps = KP_GRAPH[kp]||[];
+    myDeps.forEach(function(d){ if(d!==kp) out.push({kp:d, dir: correct?1:-1, dep:false}); });
+    return out;  // [{kp, dir, dep}]
+  }
+
+  // ============================================================
+  // 6. IRT 三参数(3PL)难度自适应：加猜测参数c / 失误参数d
+  //    P(对) = c + (1-c-d)*logistic(a(θ-b))
+  // ============================================================
+  function irtAbility3PL(records, a, c, d){
+    records = records||[];
+    if(!records.length) return 0;
+    a=a!=null?a:1.0; c=c!=null?c:0.20; d=d!=null?d:0.05;   // 平均题 guess 0.2 slip 0.05
+    let theta=0; const lr=0.2;
+    for(let it=0; it<10; it++){
+      let grad=0;
+      for(const r of records){
+        const b=(r.diff||2)/2.5;
+        const L=logistic(a*(theta-b));
+        const p=c+(1-c-d)*L;                                 // 3PL
+        // 对θ梯度
+        const dP = (1-c-d)*L*(1-L)*a;
+        grad += ((r.correct?1:0)-p) * (dP/Math.max(1e-6,L));
+      }
+      theta += lr * (grad/Math.max(records.length,1));
+      theta=Math.max(-3,Math.min(3,theta));
+    }
+    return theta;
+  }
+
+  // ============================================================
+  // 7. 综合"深度学情报告"(融合所有算法)：能力+序列趋势+关联+图谱根因
+  // ============================================================
+  function deepAnalysis(records, masteryMap){
+    const I = {
+      ability: irtAbility3PL(records),
+      trend: seqPredict(records.slice(-20)),
+      weak:[],
+      root:[],
+      risky:[]   // 与薄弱点强关联的"待补"知识点
+    };
+    Object.keys(masteryMap||{}).forEach(function(k){
+      const m=masteryMap[k];
+      if(m.mastery<60 && m.total>=2) I.weak.push({key:k, m:m.mastery});
+    });
+    I.weak.sort(function(a,b){return a.m-b.m;});
+    // 根因 + 关联考点
+    I.weak.slice(0,3).forEach(function(w){
+      inferRootCause(w.key, masteryMap).forEach(function(d){ if(d.weak && I.root.indexOf(d.kp)<0) I.root.push(d.kp); });
+      correlate(w.key, masteryMap, false).forEach(function(c){ if(I.risky.indexOf(c.kp)<0 && I.weak.findIndex(function(x){return x.key===c.kp;})<0) I.risky.push(c.kp); });
+    });
+    return I;
+  }
+
   root.__EngineIntel = {
     irtAbility: irtAbility,
+    irtAbility3PL: irtAbility3PL,
     recommendDiff: recommendDiff,
     KP_GRAPH: KP_GRAPH,
     inferRootCause: inferRootCause,
     bktUpdate: bktUpdate,
     propagate: propagate,
+    seqPredict: seqPredict,
+    correlate: correlate,
+    deepAnalysis: deepAnalysis,
     localAnalysis: localAnalysis,
     sigmoid: sigmoid
   };
