@@ -1416,12 +1416,24 @@ const app = createApp({
     checkinDays(){ const arr=this.checkins(); if(arr.indexOf(todayStr())<0) return 0; let n=0,d=new Date(); while(true){ const s=d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); if(arr.indexOf(s)>=0){n++;d.setDate(d.getDate()-1);}else break;} return n; },
     _save(){ store.set('wx_mastery',this.mastery); store.set('wx_records',this.records); store.set('wx_mistakes',this.mistakes); store.set('wx_hist',this.hist); },
     recordResult(q, correct){
-      const key=q.kpId||q.kp; const m=this.mastery[key]||{total:0,correct:0,streak:0,last5:[],mastery:0};
+      const key=q.kpId||q.kp;
+      // 贝叶斯知识追踪(BKT,对标pyBKT)参数: 猜对率G、失误率S、习得率T、初始掌握率
+      const bkt = (this._bktParams && this._bktParams[key]) || { g:0.25, s:0.10, t:0.30, prior:0.20 };
+      const m=this.mastery[key]||{total:0,correct:0,streak:0,last5:[],mastery:0, Pl: bkt.prior};
       m.total++; if(correct){m.correct++;m.streak++;}else{m.streak=0;}
       m.last5.push(correct?1:0); if(m.last5.length>5)m.last5.shift();
-      const rec5=m.last5.reduce((a,b)=>a+b,0)/m.last5.length;
-      m.mastery=Math.max(0,Math.min(100,(m.correct/m.total)*60+Math.min(m.streak,5)*5+rec5*15));
-      if(m.mastery>=60 && !m.nextReview){ const d=new Date(); d.setDate(d.getDate()+3); m.nextReview=d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+      // BKT 后验更新（核心：把"答对/答错"转化为"对该知识的掌握概率"，区分蒙对/失误）
+      const pL = (m.Pl!==undefined?m.Pl:bkt.prior);
+      let pLc;
+      if(correct){ pLc = (pL*(1-bkt.s))/(pL*(1-bkt.s)+(1-pL)*bkt.g); }
+      else { pLc = (pL*bkt.s)/(pL*bkt.s+(1-pL)*(1-bkt.g)); }
+      // 习得(掌握后练习巩固) + 收敛保护
+      let pL2 = pLc + (1-pLc)*bkt.t;
+      if(pL2>0.98) pL2=0.98; if(pL2<0.05) pL2=0.05;
+      m.Pl = pL2;
+      // 掌握度=掌握概率×100（BKT推断的"真的会"程度），并融合近期表现做微调
+      m.mastery = Math.round(pL2*100);
+      if(m.mastery>=60 && !m.nextReview){ const d=new Date(); d.setDate(d.getDate()+ (m.mastery>=85?7:3)); m.nextReview=d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
       this.mastery[key]=m;
       const k=this.todayKey; const h=this.hist[k]||{done:0,correct:0}; h.done++; if(correct)h.correct++; this.hist[k]=h;
       // 记录答题明细（用时/对错/知识点），用于统计与成就
