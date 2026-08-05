@@ -171,6 +171,8 @@ function getTemplates(subject){
   if(subject==='math' && window.__PREMIUM_MATH_BANK && window.__PREMIUM_MATH_BANK.length){ prem = (prem||[]).concat(window.__PREMIUM_MATH_BANK); }
   // 数学叠加集合专项变式库
   if(subject==='math' && window.__PREMIUM_MATH_SET && window.__PREMIUM_MATH_SET.length){ prem = (prem||[]).concat(window.__PREMIUM_MATH_SET); }
+  // 数学叠加百库模板(1180)
+  if(subject==='math' && window.__MATH_BIG && window.__MATH_BIG.length){ prem = (prem||[]).concat(window.__MATH_BIG); }
   // 语文叠加高中深化模板
   if(subject==='chinese' && window.__PREMIUM_CHINESE_HS && window.__PREMIUM_CHINESE_HS.length){ prem = (prem||[]).concat(window.__PREMIUM_CHINESE_HS); }
   // 英语叠加高中深化模板
