@@ -26,8 +26,8 @@ http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const data = JSON.parse(body)
-        // 从环境变量读Key（服务器持有Key模式），或从请求带Key
-        const apiKey = data.apiKey || process.env.AI_API_KEY || ''
+        // 从环境变量读Key（服务器持有Key模式），或从请求带Key；兼容多种Key变量名
+        const apiKey = data.apiKey || process.env.AI_API_KEY || process.env.GLM_API_KEY || process.env.ZHIPU_API_KEY || process.env.ZHIPUAI_API_KEY || ''
         const providerMap = {
           zhipu: { host: 'open.bigmodel.cn', path: '/api/paas/v4/chat/completions', model: 'glm-4.7-flash' },
           deepseek: { host: 'api.deepseek.com', path: '/v1/chat/completions', model: 'deepseek-chat' },
