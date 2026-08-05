@@ -1039,7 +1039,39 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
     </div>
     <div style="display:flex;gap:6px;padding:10px 16px">
       <div class="mm-tab" :class="{active:aiTab==='chat'}" @click="aiTab='chat'">对话</div>
-      <div class="mm-tab" :class="{active:aiTab==='suggest'}" @click="aiTab='suggest'">建议提示词</div>
+      <div class="mm-tab" :class="{active:aiTab==='gen'}" @click="aiTab='gen'">AI智能出题</div>
+      <div class="mm-tab" :class="{active:aiTab==='analyze'}" @click="aiTab='analyze'">AI学情分析</div>
+      <div class="mm-tab" :class="{active:aiTab==='suggest'}" @click="aiTab='suggest'">建议</div>
+    </div>
+    <!-- AI智能出题（专属 GLM-4-Flash 优化：结构化生成选择题） -->
+    <div v-if="aiTab==='gen'">
+      <div class="card">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:8px">AI 智能出题 · 按你的薄弱点生成</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+          <div v-for="(s,k) in SUBJECTS" :key="k" class="mm-tab" :class="{active:aiGenSub===k}" style="padding:6px 12px;font-size:12px" @click="aiGenSub=k;aiGenQ=null">{{s.name}}</div>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:10px">知识点：{{aiGenSub==='math'?'解析几何优先，AI已按薄弱点定位':('将按「'+SUBJECTS[aiGenSub].name+'」并优先薄弱知识点生成')}}</div>
+        <button class="btn-primary" style="width:100%;padding:12px" @click="aiAskQuestion()" :disabled="aiBusy">{{aiBusy?'AI 出题中…':'🎯 用 AI 生成一道题'}}</button>
+        <button class="btn-ghost" style="width:100%;padding:10px;margin-top:8px" @click="aiAnalyze()">📊 AI 学情诊断与计划</button>
+      </div>
+      <div v-if="aiGenQ" class="card">
+        <div style="font-size:14px;line-height:1.7;white-space:pre-wrap">{{aiGenQ.text}}</div>
+        <div style="margin-top:12px">
+          <div class="opt-item" v-for="(o,i) in aiGenQ.options" :key="i" :class="aiGenAns===i?(aiGenQ.checkOK?( ['A','B','C','D'][i]===aiGenQ.answer? 'opt-item correct':'opt-item wrong' ):'opt-item selected'):(aiGenQ.checkOK&&['A','B','C','D'][i]===aiGenQ.answer?'opt-item correct':'opt-item')" @click="aiGenAns=i">
+            <span style="display:inline-block;width:26px;height:26px;border-radius:50%;background:#f3f4f6;text-align:center;line-height:26px;margin-right:10px;font-size:13px">{{['A','B','C','D'][i]}}</span>{{o}}
+          </div>
+          <button class="btn-primary" style="width:100%;padding:12px;margin-top:6px" @click="aiGenCheck()">提交判分</button>
+        </div>
+        <div v-if="aiGenQ.checkOK" style="margin-top:10px;padding:10px;border-radius:8px;background:aiGenQ.checkRight?'#e6f6e6':'#fdecec';color:aiGenQ.checkRight?'var(--success)':'var(--danger)">{{aiGenQ.checkRight?'✓ 回答正确':'✗ 回答错误'}} · 正确答案：{{aiGenQ.answer}}</div>
+        <div v-if="aiGenQ.checkOK&&aiGenQ.analysis" style="margin-top:8px;font-size:13px;color:var(--text2);line-height:1.6">解析：{{aiGenQ.analysis}}</div>
+      </div>
+    </div>
+    <!-- AI学情分析结果 -->
+    <div v-if="aiTab==='analyze'&&aiAnalysis" style="padding:0 16px 20px">
+      <div class="card">
+        <div class="card-title">📊 AI 学情诊断 · {{todayStr()}}</div>
+        <div style="font-size:14px;line-height:1.8;white-space:pre-wrap">{{aiAnalysis}}</div>
+      </div>
     </div>
     <div v-if="aiTab==='suggest'" class="card">
       <div class="card-title">福建高考专项提问示例</div>
@@ -1325,6 +1357,7 @@ const app = createApp({
       aiMsgs: store.get('wx_ai_msgs', [ {role:'ai', content:'你好！我是针对福建高考的出题辅助AI。你可以问我某个知识点，或让我讲解你做错的题目。'} ]),
       aiInput:'', aiBusy:false,
       aiConfig: store.get('wx_ai', { provider:'zhipu', model:'glm-4.7-flash', key:'', baseUrl:'' }),
+      aiGenSub:'math', aiGenQ:null, aiGenAns:'', aiAnalysis:'',
       aiTestState:'', aiTab:'chat', aiContext:'',
       // ===== 新功能状态 =====
       onboarding: store.get('wx_onboard', 0),      // 0已完成,1,2,3引导步进
@@ -1950,6 +1983,53 @@ const app = createApp({
       const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(cfg.key||'')},body:JSON.stringify({model:cfg.model,messages:userMsgs})});
       if(!r.ok) throw new Error('HTTP '+r.status);
       const j=await r.json(); return j.choices&&j.choices[0]?j.choices[0].message.content:(j.error||'未返回');
+    },
+    // ===== 专属 GLM-4-Flash 优化：AI 智能出题（结构化生成选择题） =====
+    async aiAskQuestion(){
+      if(this.aiBusy) return;
+      if(!this.aiConfig.key){ this.aiGenQ={ text:'【未配置 AI】请到「我的 → AI参数设置」填入智谱GLM免费版 API Key 后，即可用 AI 按你的薄弱点智能出题。', options:[], answer:'', analysis:'' }; return; }
+      const subj=this.aiGenSub;
+      // 针对 GLM-4-Flash 的极简结构化提示词（弱模型也易输出）
+      const sys='你是一名福建高考出题老师。请严格按以下 JSON 格式输出一道 4 选项单选题（不要多余文字、不要代码块标记）：\n{"text":"题目题干(中文,注意高考风格)","options":["选项A","选项B","选项C","选项D"],"answer":"A或B或C或D","analysis":"答案解析(含考点,2-3句)"}\n注意：题目必须自洽、答案唯一；若该知识点生成困难，出一题常规基础选择即可。';
+      const prompt='请为「'+SUBJECTS[subj].name+'」出一道选择题，风格贴近福建/新课标高考。当前科目可选考点：'+getKps(subj).slice(0,8).join('、')+'；若已知该学生薄弱点请优先此方向：'+this.weakKp.map(w=>w.key).slice(0,3).join('、');
+      this.aiBusy=true;
+      try{
+        const raw=await this.callLLM(prompt,[{role:'system',content:sys},{role:'user',content:prompt}]);
+        const parsed=this._parseAIQuestion(raw, subj);
+        if(parsed){ this.aiGenQ=parsed; this.aiGenAns=''; this.aiGenQ.checkOK=false; }
+        else { this.aiGenQ={ text:'（AI 返回未解析成题目，可能格式异常，请重试）', options:[], answer:'', analysis:'' }; }
+      }catch(e){ this.aiGenQ={ text:'（AI 出题失败，请检查 API Key 或稍后重试）', options:[], answer:'', analysis:'' }; }
+      this.aiBusy=false;
+    },
+    // 解析 GLM 输出的题目（容忍多余字符/换行/代码块）
+    _parseAIQuestion(raw, subj){
+      let t=String(raw||'').replace(/```json|```/g,'').trim();
+      const s=t.indexOf('{'), e=t.lastIndexOf('}');
+      if(s>=0&&e>s){ try{ const o=JSON.parse(t.slice(s,e+1)); if(o.text&&o.options&&o.options.length>=4){ return {text:o.text, options:o.options.slice(0,4), answer:(o.answer||'').toUpperCase().trim()[0]||'A', analysis:o.analysis||'', checkOK:false, checkRight:false};} }catch(err){} }
+      return null;
+    },
+    aiGenCheck(){
+      const q=this.aiGenQ; if(!q||q.answer===undefined) return;
+      const letters=['A','B','C','D'];
+      q.checkRight = letters[this.aiGenAns]===String(q.answer).trim().toUpperCase();
+      q.checkOK=true;
+    },
+    // ===== AI 学情诊断与个性计划（GLM-4-Flash 优化） =====
+    async aiAnalyze(){
+      if(this.aiBusy) return;
+      const subj=this.aiGenSub;
+      // 汇总学情（本地统计→GLM诊断）
+      const total=this.records.length, done=this.records.filter(r=>r.subj===subj).length;
+      const weak=this.weakKp.slice(0,4).map(w=>w.key+'('+Math.round(w.mastery)+'%)').join('、');
+      const mistakes=this.mistakes.filter(m=>m.subject===subj).length;
+      const wrongKp={}; this.mistakes.filter(m=>m.subject===subj).forEach(m=>wrongKp[m.kp]=(wrongKp[m.kp]||0)+1);
+      const topWrong=Object.keys(wrongKp).sort((a,b)=>wrongKp[b]-wrongKp[a]).slice(0,4).join('、');
+      if(!this.aiConfig.key){ this.aiAnalysis='【未配置 AI】请到「我的 → AI参数设置」填入智谱GLM免费版 API Key（glm-4.7-flash），即可生成学情诊断和个性化提分计划。\n\n当前本地学情摘要：\n· 累计做题 '+total+' 道，其中「'+SUBJECTS[subj].name+'」'+done+' 道\n· '+SUBJECTS[subj].name+'错题 '+mistakes+' 道\n· 薄弱点：'+(weak||'暂无')+((topWrong)?('\n· 常错知识点：'+topWrong):''); return; }
+      const sys='你是一名福建高考提分教练。请用中文、简洁地输出学情诊断（200~350字），包含：①整体掌握情况 ②主要薄弱知识点及原因 ③针对性提分建议(具体到练哪些知识点、用什么方法) ④下一周学习计划要点。语气鼓励、实用。';
+      const prompt='学生学情摘要：累计做题'+total+'道；'+SUBJECTS[subj].name+'做题'+done+'道、错题'+mistakes+'道；薄弱知识点：'+weak+';常错：'+topWrong;
+      this.aiBusy=true;
+      try{ this.aiAnalysis=await this.callLLM(prompt,[{role:'system',content:sys},{role:'user',content:prompt}]); }catch(e){ this.aiAnalysis='（AI 学情分析失败，请检查 API Key）'; }
+      this.aiBusy=false;
     },
     sendMsg(){
       const text=this.aiInput.trim(); if(!text||this.aiBusy) return;
