@@ -1990,7 +1990,7 @@ const app = createApp({
       if(!this.aiConfig.key){ this.aiGenQ={ text:'【未配置 AI】请到「我的 → AI参数设置」填入智谱GLM免费版 API Key 后，即可用 AI 按你的薄弱点智能出题。', options:[], answer:'', analysis:'' }; return; }
       const subj=this.aiGenSub;
       // 针对 GLM-4-Flash 的极简结构化提示词（弱模型也易输出）
-      const sys='你是一名福建高考出题老师。请严格按以下 JSON 格式输出一道 4 选项单选题（不要多余文字、不要代码块标记）：\n{"text":"题目题干(中文,注意高考风格)","options":["选项A","选项B","选项C","选项D"],"answer":"A或B或C或D","analysis":"答案解析(含考点,2-3句)"}\n注意：题目必须自洽、答案唯一；若该知识点生成困难，出一题常规基础选择即可。';
+      const sys='你是一名福建高考出题老师。请生成一道【选择题】（有真实4个备选答案）。必须严格按下面JSON格式输出，不要多余文字、不要代码块标记：\n{"text":"题目题干(中文,高考风格,含算式用文字描述)","options":["具体选项内容1","具体选项内容2","具体选项内容3","具体选项内容4"],"answer":"A","analysis":"答案解析(2-3句)"}\n要求：1.options里四项必须是具体、互斥、贴近的答案内容(不是A/B/C/D字母)；2.答案唯一；3.选项数字或表达式用普通文本(如 "2","√3","1/2")。';
       const prompt='请为「'+SUBJECTS[subj].name+'」出一道选择题，风格贴近福建/新课标高考。当前科目可选考点：'+getKps(subj).slice(0,8).join('、')+'；若已知该学生薄弱点请优先此方向：'+this.weakKp.map(w=>w.key).slice(0,3).join('、');
       this.aiBusy=true;
       try{
