@@ -525,7 +525,6 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div class="hero-title"><span v-html="ICONS.book"></span> 无限题</div>
         <div style="display:flex;gap:12px;align-items:center">
-          <span style="cursor:pointer" @click="go('ai')" v-html="ICONS.zap"></span>
           <span style="cursor:pointer" @click="toggleTheme">{{theme==='light'?'🌙':'☀️'}}</span>
         </div>
       </div>
@@ -628,7 +627,6 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
       <div class="grid-item" @click="go('mistakes')"><div class="icon-wrap" style="background:linear-gradient(135deg,#fef2f2,#fee2e2);color:#dc2626" v-html="ICONS.alert"></div><span class="label">错题本</span></div>
       <div class="grid-item" @click="go('stats')"><div class="icon-wrap" style="background:linear-gradient(135deg,#fffbeb,#fef3c7);color:#d97706" v-html="ICONS.chart"></div><span class="label">学情</span></div>
       <div class="grid-item" @click="goKeep('graph')"><div class="icon-wrap" style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);color:#7c3aed" v-html="ICONS.graph"></div><span class="label">知识图谱</span></div>
-      <div class="grid-item" @click="go('ai')"><div class="icon-wrap" style="background:linear-gradient(135deg,#ecfeff,#cffafe);color:#0891b2" v-html="ICONS.zap"></div><span class="label">AI助手</span></div>
       <div class="grid-item" @click="go('profile')"><div class="icon-wrap" style="background:linear-gradient(135deg,#fce7f3,#fbcfe8);color:#db2777" v-html="ICONS.settings"></div><span class="label">我的</span></div>
       <div class="grid-item" @click="goKeep('kaoshi')"><div class="icon-wrap" style="background:linear-gradient(135deg,#fef2f2,#fee2e2);color:#b91c1c" v-html="ICONS.clock"></div><span class="label">考纲</span></div>
       <div class="grid-item" @click="goKeep('zhenti')"><div class="icon-wrap" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1d4ed8" v-html="ICONS.book"></div><span class="label">高考真题</span></div>
@@ -1075,70 +1073,7 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
   </div>
 
   <!-- ========== AI助手 ========== -->
-  <div class="page" v-if="page==='ai'">
-    <div style="display:flex;align-items:center;padding:14px 16px;background:var(--card);border-bottom:1px solid var(--border)">
-      <span @click="back()" style="font-size:18px;margin-right:12px;cursor:pointer">‹</span><b style="font-size:16px;flex:1">AI助手</b>
-      <span style="font-size:12px;color:var(--text3);cursor:pointer" @click="clearAi()">清空</span>
-    </div>
-    <div style="display:flex;gap:6px;padding:10px 16px">
-      <div class="mm-tab" :class="{active:aiTab==='chat'}" @click="aiTab='chat'">对话</div>
-      <div class="mm-tab" :class="{active:aiTab==='gen'}" @click="aiTab='gen'">AI智能出题</div>
-      <div class="mm-tab" :class="{active:aiTab==='analyze'}" @click="aiTab='analyze'">AI学情分析</div>
-      <div class="mm-tab" :class="{active:aiTab==='suggest'}" @click="aiTab='suggest'">建议</div>
-    </div>
-    <!-- 智能出题（自研本地引擎） -->
-    <div v-if="aiTab==='gen'">
-      <div class="card">
-        <div style="font-size:13px;color:var(--text2);margin-bottom:8px">AI 智能出题 · 按你的薄弱点生成</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-          <div v-for="(s,k) in SUBJECTS" :key="k" class="mm-tab" :class="{active:aiGenSub===k}" style="padding:6px 12px;font-size:12px" @click="aiGenSub=k;aiGenQ=null">{{s.name}}</div>
-        </div>
-        <div style="font-size:12px;color:var(--text3);margin-bottom:10px">知识点：{{aiGenSub==='math'?'解析几何优先，AI已按薄弱点定位':('将按「'+SUBJECTS[aiGenSub].name+'」并优先薄弱知识点生成')}}</div>
-        <button class="btn-primary" style="width:100%;padding:12px" @click="aiAskQuestion()" :disabled="aiBusy">{{aiBusy?'AI 出题中…':'🎯 用 AI 生成一道题'}}</button>
-        <button class="btn-ghost" style="width:100%;padding:10px;margin-top:8px" @click="aiAnalyze()">📊 AI 学情诊断与计划</button>
-      </div>
-      <div v-if="aiGenQ" class="card">
-        <div style="font-size:14px;line-height:1.7;white-space:pre-wrap">{{aiGenQ.text}}</div>
-        <div style="margin-top:12px">
-          <div class="opt-item" v-for="(o,i) in aiGenQ.options" :key="i" :class="aiGenAns===i?(aiGenQ.checkOK?( ['A','B','C','D'][i]===aiGenQ.answer? 'opt-item correct':'opt-item wrong' ):'opt-item selected'):(aiGenQ.checkOK&&['A','B','C','D'][i]===aiGenQ.answer?'opt-item correct':'opt-item')" @click="aiGenAns=i">
-            <span style="display:inline-block;width:26px;height:26px;border-radius:50%;background:#f3f4f6;text-align:center;line-height:26px;margin-right:10px;font-size:13px">{{['A','B','C','D'][i]}}</span>{{o}}
-          </div>
-          <button class="btn-primary" style="width:100%;padding:12px;margin-top:6px" @click="aiGenCheck()">提交判分</button>
-        </div>
-        <div v-if="aiGenQ.checkOK" style="margin-top:10px;padding:10px;border-radius:8px;background:aiGenQ.checkRight?'#e6f6e6':'#fdecec';color:aiGenQ.checkRight?'var(--success)':'var(--danger)">{{aiGenQ.checkRight?'✓ 回答正确':'✗ 回答错误'}} · 正确答案：{{aiGenQ.answer}}</div>
-        <div v-if="aiGenQ.checkOK&&aiGenQ.analysis" style="margin-top:8px;font-size:13px;color:var(--text2);line-height:1.6">解析：{{aiGenQ.analysis}}</div>
-      </div>
-    </div>
-    <!-- AI学情分析结果 -->
-    <div v-if="aiTab==='analyze'&&aiAnalysis" style="padding:0 16px 20px">
-      <div class="card">
-        <div class="card-title">📊 AI 学情诊断 · {{todayStr()}}</div>
-        <div style="font-size:14px;line-height:1.8;white-space:pre-wrap">{{aiAnalysis}}</div>
-      </div>
-    </div>
-    <div v-if="aiTab==='suggest'" class="card">
-      <div class="card-title">福建高考专项提问示例</div>
-      <div class="tool-item" v-for="(s,i) in aiSuggestions" :key="i" @click="aiInput=s.p">
-        <div style="flex:1"><div class="tool-name">{{s.t}}</div><div class="tool-desc">{{s.p}}</div></div>
-      </div>
-    </div>
-    <div v-else>
-      <div class="card" style="min-height:50vh;display:flex;flex-direction:column">
-        <div style="flex:1;overflow-y:auto;max-height:60vh">
-          <div v-for="(m,i) in aiMsgs" :key="i" style="margin-bottom:10px;display:flex" :style="{justifyContent:m.role==='user'?'flex-end':'flex-start'}">
-            <div :style="{maxWidth:'82%',padding:'10px 14px',borderRadius:'12px',fontSize:'14px',lineHeight:'1.6',whiteSpace:'pre-wrap',backgroundColor:m.role==='user'?'var(--primary)':'var(--bg)',color:m.role==='user'?'#fff':'var(--text)'}">{{m.content}}</div>
-          </div>
-          <div v-if="aiBusy" style="text-align:center;color:var(--text3);font-size:13px">AI思考中…</div>
-        </div>
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <input v-model="aiInput" :placeholder="aiPlaceholder()" style="flex:1;padding:12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;background:var(--card);color:var(--text)">
-          <button class="btn-primary" style="flex-shrink:0;padding:12px 18px" @click="sendMsg()">发送</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ========== 我的 ========== -->
+    <!-- ========== 我的 ========== -->
   <div class="page" v-if="page==='profile'">
     <div style="display:flex;align-items:center;padding:14px 16px;background:var(--card);border-bottom:1px solid var(--border)">
       <span @click="back()" style="font-size:18px;margin-right:12px;cursor:pointer">‹</span><b style="font-size:16px">我的</b>
@@ -1366,7 +1301,6 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
     <div class="darktab" :class="{active:page==='generate'||page==='answer'||page==='answerDone'}" @click="goKeep('generate')"><span v-html="ICONS.dice"></span>出题</div>
     <div class="darktab" :class="{active:tab==='stats'}" @click="go('stats')"><span v-html="ICONS.chart"></span>学情</div>
     <div class="darktab" :class="{active:page==='mistakes'}" @click="go('mistakes')"><span v-html="ICONS.alert"></span>错题</div>
-    <div class="darktab" :class="{active:tab==='ai'}" @click="go('ai')"><span v-html="ICONS.zap"></span>AI</div>
   </div>
 </div>
 </div>`;
@@ -1394,10 +1328,6 @@ const app = createApp({
       zhentiSub:'physics', zhentiIdx:0, zhentiAns:'', zhentiChecked:false,
       misFilter:{ subject:'all' }, misMode:'list', misRedoQs:[], misRedoIndex:0, misRedoAns:{}, misRedoSolved:{right:0,wrong:0}, misRedoCav:null, misRedoSel:[], misRedoR:false,
       schoolSub:'math', graphSub:'math',
-      aiMsgs: store.get('wx_ai_msgs', [ {role:'ai', content:'你好！我是本机智能出题助手（本地引擎·完全离线）。你可以问知识点、要我分析薄弱点，或让我讲错题。'} ]),
-      aiInput:'', aiBusy:false, latestQ:null,
-      aiGenSub:'math', aiGenQ:null, aiGenAns:'', aiAnalysis:'',
-      aiTab:'chat', aiContext:'',
       // ===== 新功能状态 =====
       onboarding: store.get('wx_onboard', 0),      // 0已完成,1,2,3引导步进
       showUpdate:false, updateLog:[], seenVer:store.get('wx_seenVer',''),
@@ -1538,6 +1468,7 @@ const app = createApp({
       if(type.diff) this.gen.difficulty = type.diff>=4?'hard':type.diff===3?'auto':'easy';
       const typeFilter = this.gen.types.choice&&this.gen.types.blank&&this.gen.types.dual ? 'all' : (this.gen.types.choice?'choice':this.gen.types.blank?'blank':'dual');
       let qs = genQuestions(subj, this.gen.kps, type.diff||this.gen.difficulty, this.gen.count, typeFilter);
+      if(!qs.length){ qs = genQuestions(subj, this.gen.kps, 'auto', this.gen.count, typeFilter); }
       if(!qs.length){ this.help='该题型暂无更多可生成题目，请稍后再试'; return; }
       let guard=0;
       while(guard<60){
@@ -1561,7 +1492,7 @@ const app = createApp({
         kps = this.smartPickKps(subj);
       }
       const typeFilter = this.gen.types.choice&&this.gen.types.blank&&this.gen.types.dual ? 'all' : (this.gen.types.choice?'choice':this.gen.types.blank?'blank' : this.gen.types.dual?'dual':'all');
-      // 自研IRT引擎：难度"自适应"时，按学生能力动态推荐难度(对标深度自适应方法)
+      // 自研IRT引擎：估算学生能力，用于决定"难度分层分布"（不硬滤，高难题也保留机会）
       let effDiff = this.gen.difficulty;
       if(effDiff==='auto'){
         const EI=(typeof window!=='undefined'&&window.__EngineIntel);
@@ -1570,8 +1501,25 @@ const app = createApp({
           effDiff = EI.recommendDiff(theta);   // 1-5
         } else effDiff='auto';
       }
-      let qs = genQuestions(subj, kps, effDiff, this.gen.count, typeFilter);
-      // 重复避免：近N天内出过同模板+同参数哈希的题，重新生成替身（最多重试30次）
+      // 分层出题：按难度分布生成，确保覆盖各难度模板（含变式/高分/压轴），IRT仅调"中心难度"不硬滤
+      const n=this.gen.count||10;
+      let layout;
+      if(effDiff==='auto') layout=[1,2,3,3,4,5,2,3,3,4];
+      else {
+        const c=Math.max(1,Math.min(5,+effDiff));
+        layout=[Math.max(1,c-1),c,Math.max(1,c-1),Math.min(5,c+1),Math.min(5,c+1),1,2,3,4,5].slice(0,n);
+      }
+      const diffPool=[1,2,3,4,5];
+      let qs=[];
+      for(let i=0;i<n;i++){
+        const want=layout[i%layout.length];
+        let one=genQuestions(subj, kps, want, 1, typeFilter)[0];
+        if(!one){ one=genQuestions(subj, kps, 'auto', 1, typeFilter)[0]; }
+        if(one) qs.push(one);
+      }
+      // 若不足，用全难度补足，保证数量
+      if(qs.length<n){ const more=genQuestions(subj, kps, 'auto', n*2, typeFilter); qs=qs.concat(more).slice(0,n); }
+      // 重复避免：近N天内出过同模板+同参数哈希的题，重新生成替身（最多重试60次）
       if(qs.length){
         let guard=0;
         while(guard<60){
@@ -1919,10 +1867,11 @@ const app = createApp({
       // 从每个知识点抽1-2题,直到接近count
       for(const kp of uniq){
         const batch=genQuestions(subj,[kp],diff,2,typeFilter);
+        if(!batch.length) { batch=genQuestions(subj,[kp],'auto',2,typeFilter); }
         qs=qs.concat(batch);
         if(qs.length>=count) break;
       }
-      if(!qs.length){ qs=genQuestions(subj,this.smartPickKps(subj,3),diff,count,typeFilter); }
+      if(!qs.length){ qs=genQuestions(subj,this.smartPickKps(subj,3),'auto',count,typeFilter); }
       qs=qs.slice(0,count);
       if(!qs.length){ this.help='暂无可生成的个性化题目，请先刷题积累学情'; return; }
       // 去重
@@ -2106,25 +2055,17 @@ const app = createApp({
     },
     askExplain(){
       let q=null; try{ q=this.currentQ(); }catch(e){}
-      if(!q){ this.go('ai'); return; }
-      this.latestQ=q; this.aiTab='chat';
+      if(!q){ return; }
       const msg=this._localExplain('讲解', q, (window.__EngineIntel||{}));
-      this.aiMsgs.push({role:'user',content:'讲解题目：'+q.text.slice(0,32)+'…'}); 
-      this.aiMsgs.push({role:'ai',content:msg}); store.set('wx_ai_msgs',this.aiMsgs.slice(-30));
-      this.go('ai');
+      try{ alert(msg); }catch(e){}
     },
-    clearAi(){ this.aiMsgs=[{role:'ai',content:'对话已清空（本地智能引擎，完全离线）'}]; store.set('wx_ai_msgs',this.aiMsgs); },
-    aiPlaceholder(){ return '输入想问的（本地智能引擎）…'; },
     diffTxt(){ return this.gen.difficulty==='easy'?'简单':this.gen.difficulty==='hard'?'困难':'自适应'; },
     startReview(kp){ this.gen.subject=this.graphSub; this.gen.kps=[kp]; this.genType='review'; this.startGenerate(); },
     askMistake(m){
-      this.aiTab='chat';
-      this.aiMsgs.push({role:'user',content:'请讲解我的错题：'+m.text}); 
       let msg='【本地错题讲解】\n题目：'+m.text+'\n正确答案：'+m.answer;
       if(m.kp&&KNOWLEDGE&&KNOWLEDGE[m.kp]) msg+='\n【考点】'+KNOWLEDGE[m.kp].keypoint+((KNOWLEDGE[m.kp].method)?('\n【套路】'+KNOWLEDGE[m.kp].method):'');
       if(m.solution&&m.solution.length) msg+='\n【解析】'+m.solution.join('；');
-      this.aiMsgs.push({role:'ai',content:msg}); store.set('wx_ai_msgs',this.aiMsgs.slice(-30)); this.aiBusy=false;
-      this.go('ai');
+      try{ alert(msg); }catch(e){}
     },
     // ================= 新手引导 =================
     beginOnboard(){ if(this.onboarding===0) this.onboarding=1; this.goKeep('onboard'); },
