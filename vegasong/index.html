@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>虚拟歌姬 · 旋律织机</title>
+<style>
+:root{
+  --pink:#ff5ec9; --purple:#8b6cff; --cyan:#5ee8ff; --text:#f2efff; --dim:#b9b0e8;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;background:#0e0a22;color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+#wrap{display:flex;flex-direction:column;height:100%;}
+
+header{padding:8px 14px;display:flex;align-items:center;gap:10px;background:rgba(20,12,46,.6);
+  backdrop-filter:blur(8px);border-bottom:1px solid rgba(255,255,255,.1);z-index:5;}
+.brand{display:flex;align-items:center;gap:8px;font-weight:800;letter-spacing:.5px;font-size:15px;}
+.logo{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;
+  background:conic-gradient(from 0deg,#ff5ec9,#ffd166,#5ee8ff,#8b6cff,#ff5ec9);color:#1a0620;}
+.spacer{flex:1;}
+.chip{font-size:11px;color:#c9c2ff;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);padding:4px 10px;border-radius:999px;}
+.btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:var(--text);
+  padding:7px 13px;border-radius:10px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn:active{transform:scale(.95);}
+.btn.primary{background:linear-gradient(135deg,var(--pink),var(--purple));border:none;font-weight:700;}
+
+#girlbar{display:flex;gap:8px;padding:8px 12px;overflow-x:auto;border-bottom:1px solid rgba(255,255,255,.1);
+  background:rgba(12,8,28,.4);scrollbar-width:none;flex:0 0 auto;}
+#girlbar::-webkit-scrollbar{display:none;}
+.girl-chip{flex:0 0 auto;padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.06);font-size:13px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;position:relative;}
+.girl-chip .avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;
+  border:2px solid rgba(255,255,255,.15);}
+.girl-chip.on{background:linear-gradient(135deg,var(--cyan),var(--purple));color:#120640;border:none;font-weight:700;}
+.girl-chip.on .avatar{border-color:#120640;}
+.girl-chip .nm{font-size:11px;}
+
+#ctrlbar{display:flex;gap:8px;padding:6px 12px;align-items:center;border-bottom:1px solid rgba(255,255,255,.1);
+  background:rgba(12,8,28,.4);flex-wrap:wrap;flex:0 0 auto;}
+.lbl{font-size:12px;color:var(--dim);margin-right:2px;}
+select{background:rgba(255,255,255,.08);color:var(--text);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:5px 8px;font-size:12px;outline:none;}
+.switch{width:40px;height:22px;border-radius:999px;background:#3a3550;position:relative;cursor:pointer;transition:.2s;flex:0 0 auto;}
+.switch::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.2s;}
+.switch.on{background:linear-gradient(135deg,var(--pink),var(--purple));}
+.switch.on::after{left:21px;}
+.switchwrap{display:flex;align-items:center;gap:6px;}
+
+#stageWrap{position:relative;flex:1;overflow:hidden;}
+#stage{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair;}
+#hint{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;
+  color:var(--dim);font-size:14px;line-height:1.9;transition:opacity 1s;z-index:3;}
+#hint b{color:#dcd6ff;}
+#compass{position:absolute;right:12px;bottom:14px;font-size:11px;color:#6f69a8;text-align:right;pointer-events:none;z-index:3;
+  background:rgba(12,8,28,.6);padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.1);}
+#stepRow{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:4px;pointer-events:none;z-index:3;}
+#stepRow .dot{width:22px;height:6px;border-radius:3px;background:rgba(255,255,255,.14);transition:.1s;}
+#stepRow .dot.lit{background:linear-gradient(90deg,var(--cyan),var(--pink));}
+
+#noteNow{position:absolute;left:50%;top:16%;transform:translateX(-50%);font-size:30px;font-weight:800;color:#fff;
+  text-shadow:0 0 24px rgba(255,94,201,.9);pointer-events:none;opacity:0;transition:.3s;z-index:3;}
+
+.modalBack{position:absolute;inset:0;background:rgba(8,5,20,.78);z-index:30;display:none;text-align:center;}
+.modalBack.show{display:flex;align-items:center;justify-content:center;}
+.modal{background:linear-gradient(160deg,#241749,#120f2d);border:1px solid rgba(255,255,255,.14);border-radius:18px;
+  padding:26px;max-width:310px;width:90%;box-shadow:0 18px 50px rgba(0,0,0,.5);}
+.modal h2{font-size:18px;margin-bottom:8px;}
+.modal p{font-size:13px;color:var(--dim);line-height:1.85;margin-bottom:16px;}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <header>
+    <div class="brand"><div class="logo">♪</div>旋律织机 <span style="color:var(--dim);font-size:12px;font-weight:500">虚拟歌姬</span></div>
+    <span class="chip" id="chipGirl">🎤 洛神</span>
+    <div class="spacer"></div>
+    <button class="btn" id="btnPlay">▶ 播放</button>
+  </header>
+
+  <div id="girlbar"></div>
+
+  <div id="ctrlbar">
+    <span class="lbl">音阶</span>
+    <select id="selScale">
+      <option value="pent">五声</option>
+      <option value="major">大调</option>
+      <option value="minor">小调</option>
+    </select>
+    <div class="switchwrap"><span class="lbl">和声</span><div id="swH" class="switch on"></div></div>
+    <div class="switchwrap"><span class="lbl">鼓</span><div id="swD" class="switch on"></div></div>
+    <div class="switchwrap"><span class="lbl">自动演奏</span><div id="swA" class="switch"></div></div>
+  </div>
+
+  <div id="stageWrap">
+    <canvas id="stage"></canvas>
+    <div id="hint"><b>点击铺出旋律，歌姬帮你唱成歌</b><br>左右 = 音高 · 上下 = 音量<br>点一下即发声，连成旋律自动生成伴奏</div>
+    <div id="compass">↑ 高音<br>← 低 → 亮</div>
+    <div id="stepRow"></div>
+    <div id="noteNow"></div>
+    <div class="modalBack show" id="intro">
+      <div class="modal">
+        <h2>🎵 旋律织机</h2>
+        <p>点击任意处，虚拟歌姬就会发出歌声。<br><br>
+        横向铺旋律、连点成线，歌姬会自动把它唱成一段带鼓点和和弦的歌。<br>
+        可切换多位歌姬声线。<br><br>
+        开启「自动演奏」还能让歌姬自己即兴哼唱。</p>
+        <button class="btn primary" style="width:100%;justify-content:center" onclick="closeIntro()">开始 🎤</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="sample.js?v=1"></script>
+<script src="engine.js?v=1"></script>
+<script src="app.js?v=1"></script>
+</body>
+</html>
