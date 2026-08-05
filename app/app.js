@@ -179,6 +179,8 @@ function getTemplates(subject){
   if(pzp && pzp.length){ prem = (prem||[]).concat(pzp); }
   // 物理叠加高中核心模板
   if(subject==='physics' && window.__PREMIUM_PHYSICS_HS && window.__PREMIUM_PHYSICS_HS.length){ prem = (prem||[]).concat(window.__PREMIUM_PHYSICS_HS); }
+  // 物理叠加变式题库
+  if(subject==='physics' && window.__PREMIUM_PHYSICS_BANK && window.__PREMIUM_PHYSICS_BANK.length){ prem = (prem||[]).concat(window.__PREMIUM_PHYSICS_BANK); }
   // 化学叠加高中核心模板
   if(subject==='chemistry' && window.__PREMIUM_CHEMISTRY_HS && window.__PREMIUM_CHEMISTRY_HS.length){ prem = (prem||[]).concat(window.__PREMIUM_CHEMISTRY_HS); }
   // 生物叠加高中核心模板
