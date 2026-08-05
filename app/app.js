@@ -94,6 +94,29 @@ function gaokaoDays(){
   const days=Math.ceil((target-now)/86400000);
   return days>0?days:0;
 }
+// ============ 版本号与更新日志 ============
+const APP_VERSION = "v54";
+const CHANGES = {
+  "v54": ["新增：AI 智能出题 + AI 学情分析（可配 GLM-4-Flash 免费版）", "AI页新增「AI智能出题」「AI学情分析」两个入口"],
+  "v53": ["学情分析升级：采用贝叶斯知识追踪(BKT)，更准确地判断你是否真正掌握，区分蒙对与失误"],
+  "v52": ["AI 出题优化：提示词针对性增强，GLM 生成更规范的选择题", "支持环境变量 GLM_API_KEY / ZHIPU_API_KEY"],
+  "v50": ["全科模板扩充至 352 个：9 科知识点体系全部补齐，覆盖高考核心考点"],
+  "v47": ["补齐理化生高中核心考点（30个）：自由落体/圆周/万有引力/电化学/遗传等"],
+  "v44": ["修复题目重复问题：现在出题会更丰富、不重复"],
+  "v42": ["新增「高考真题」页：9科历年高考真题 + 作答判分 + 解析", "新增「导学案」：生成知识点讲义，可打印"],
+  "v40": ["整卷评分升级：按得分点判分，压轴题/计算题部分作答也给分", "按题型统计得分（单选/多选/填空/解答）"],
+  "v36": ["生成试卷：严格按福建高考卷面结构组卷", "逐题解析 + 错题自动进错题本"],
+  "v33": ["新增「专项训练」：英语词汇(FRE 3120词) + 语文默写(新课标60篇)"],
+  "v30": ["英语/语文/政史地补齐名师体系题型模板"]
+};
+// 首页更新提示检测：返回自上次看到的版本以来新增的所有更新条目(倒序数组)
+function pendingChanges(lastSeen){
+  const verOrder = ["v54","v53","v52","v50","v47","v44","v42","v40","v36","v33","v30"];
+  const out=[];
+  verOrder.forEach(v=>{ if(!lastSeen || v>lastSeen){ (CHANGES[v]||[]).forEach(c=>out.push({ver:v, text:c})); } });
+  return out;
+}
+
 const PAPER_STRUCT = {
   math: { name:'数学·新课标Ⅰ卷', full:150, time:120, parts:[{t:'单选',n:8,each:5},{t:'多选',n:3,each:6},{t:'填空',n:3,each:5},{t:'解答',n:5,each:15}] },
   physics: { name:'物理·福建卷', full:100, time:75, parts:[{t:'单选',n:4,each:4},{t:'双选',n:4,each:6},{t:'填空',n:3,each:4},{t:'实验',n:2,each:5},{t:'计算',n:3,each:10}] },
@@ -505,6 +528,18 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
         <div class="hstat"><div class="n">{{checkinDays()}}</div><div class="l">连续打卡</div></div>
       </div>
       <div class="progress" v-if="todayDoneStat.done"><div class="progress-fill" :style="{width: (Math.min(todayDoneStat.done,50)/50*100)+'%'}"></div></div>
+    </div>
+
+    <!-- 版本更新提示 -->
+    <div class="card" v-if="showUpdate" style="border:2px solid var(--primary);background:linear-gradient(135deg,#eff6ff,#f0fdf4)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <b style="font-size:15px">🎉 新版本更新内容</b>
+        <span style="font-size:12px;color:var(--text3);cursor:pointer" @click="closeUpdate()">✕ 关闭</span>
+      </div>
+      <div v-for="(u,i) in updateLog" :key="i" style="font-size:13px;line-height:1.6;padding:4px 0;border-bottom:1px dashed #d1d5db">
+        <span class="tag tag-blue" style="font-size:10px;margin-right:6px">{{u.ver}}</span>{{u.text}}
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-top:8px;text-align:right" @click="showUpdateLog()">查看完整更新日志 →</div>
     </div>
 
     <!-- 智能个性化刷题 -->
@@ -1119,6 +1154,8 @@ const TPL = `<div class="wxt-app" id="wxtRoot">
       <div style="font-size:11px;color:var(--text3);margin-top:8px">提示：Key 保存在浏览器本地，也可通过本机 server 服务端持有（环境变量 AI_API_KEY）。</div>
     </div>
     <div class="card">
+      <div class="card-title">关于本应用</div>
+      <div class="settings-item" @click="showUpdateLog()"><span>📜 更新日志（当前 {{APP_VERSION}}）</span><span v-html="ICONS.chevron"></span></div>
       <div class="card-title">数据与导出</div>
       <div class="settings-item" @click="exportReportPDF()"><span>导出学习报告 PDF</span><span v-html="ICONS.chevron"></span></div>
       <div class="settings-item" @click="exportReport()"><span>导出学习报告 TXT</span><span v-html="ICONS.chevron"></span></div>
@@ -1361,6 +1398,7 @@ const app = createApp({
       aiTestState:'', aiTab:'chat', aiContext:'',
       // ===== 新功能状态 =====
       onboarding: store.get('wx_onboard', 0),      // 0已完成,1,2,3引导步进
+      showUpdate:false, updateLog:[], seenVer:store.get('wx_seenVer',''),
       achievements: store.get('wx_achieve', {}),   // 已解锁徽章 {id:解锁时间}
       paperCount: store.get('wx_paperCount', 0),
       redoneCount: 0,
@@ -2087,6 +2125,8 @@ const app = createApp({
     // ================= 新手引导 =================
     beginOnboard(){ if(this.onboarding===0) this.onboarding=1; this.goKeep('onboard'); },
     skipOnboard(){ this.onboarding=0; store.set('wx_onboard',0); try{ localStorage.setItem('wx_hasSeen','1'); }catch(e){} this.goKeep('home'); },
+    showUpdateLog(){ const out=[]; ['v54','v53','v52','v50','v47','v44','v42','v40','v36','v33','v30'].forEach(v=>{ (CHANGES[v]||[]).forEach(c=>out.push({ver:v,text:c})); }); this.updateLog=out; this.showUpdate=true; },
+    closeUpdate(){ this.showUpdate=false; },
     onboardNext(){
       this.onboarding++;
       if(this.onboarding>3){ this.onboarding=0; store.set('wx_onboard',0); try{ localStorage.setItem('wx_hasSeen','1'); }catch(e){} this.goKeep('home'); }
@@ -2211,10 +2251,14 @@ const app = createApp({
   },
   mounted(){
     // 首次访问自动进入新手引导
+    try{ if(!localStorage.getItem('wx_hasSeen')){ this.page='onboard'; this.onboarding=1; store.set('wx_onboard',1); } }catch(e){}
+    // 版本升级提示：有新版本则记录日志并展示
     try{
-      if(!localStorage.getItem('wx_hasSeen')){
-        this.page='onboard'; this.onboarding=1;
-        store.set('wx_onboard',1);
+      const seen=store.get('wx_seenVer','');
+      if(seen!==APP_VERSION){
+        this.updateLog = pendingChanges(seen);
+        if(this.updateLog.length && this.onboarding===0){ this.showUpdate=true; }
+        store.set('wx_seenVer', APP_VERSION);
       }
     }catch(e){}
   }
@@ -2227,6 +2271,7 @@ try{ app.config.globalProperties.QTYPES = QTYPES; }catch(e){}
 try{ app.config.globalProperties.GAOKAO = GAOKAO; }catch(e){}
 try{ app.config.globalProperties.gaokaoDays = gaokaoDays; }catch(e){}
 try{ app.config.globalProperties.gaokaoOfKp = gaokaoOfKp; }catch(e){}
+try{ app.config.globalProperties.CHANGES = CHANGES; }catch(e){}
 // 全局错误兜底：任何页面渲染出错时回到首页，避免白屏
 app.config.errorHandler = function(err, instance, info){
   try{ console.error('[无限题]渲染错误:', err && err.message, info); }catch(e){}
